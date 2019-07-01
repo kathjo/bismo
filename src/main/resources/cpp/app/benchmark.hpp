@@ -71,7 +71,7 @@ bismo_rt::InstrumentationData run_benchmark_matmul(
   bismo_rt::init();
   bismo_rt::InstrumentationData ret;
   try {
-    bismo_rt::LayerHandle id = bismo_rt::initMatMul(dscr);
+    bismo_rt::LayerHandle id = bismo_rt::initMatMul(dscr);//extend descr to include custom instr
     uint8_t * accel_lhs = bismo_rt::getLayerLHSBuffer(id);
     uint8_t * accel_rhs = bismo_rt::getLayerRHSBuffer(id);
     int32_t * accel_res = bismo_rt::getLayerResBuffer(id);
@@ -80,6 +80,7 @@ bismo_rt::InstrumentationData run_benchmark_matmul(
     memcpy(accel_rhs, rhs, nrows_rhs * ncols);
     bismo_rt::syncLayerRHSBuffer(id);
     bismo_rt::execMatMul(id);
+    bismo_rt::genInstructions(id);
     bismo_rt::syncLayerResBuffer(id);
     ret = bismo_rt::getInstrumentationData(id);
   } catch(const char * e) {

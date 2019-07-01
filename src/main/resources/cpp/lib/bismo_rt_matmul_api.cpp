@@ -58,7 +58,7 @@ LayerHandle initMatMul(MatMulDescriptor & dsc) {
 #else
   bool allow_gemmbitserial = false;
 #endif
-  MatrixMultiply * mm = new MatrixMultiply(lhs, rhs, res, allow_gemmbitserial);
+  MatrixMultiply * mm = new MatrixMultiply(lhs, rhs, res, allow_gemmbitserial);//pass pointer to list of custom instr
 
   return (LayerHandle) mm;
 }
@@ -104,11 +104,17 @@ void execMatMul(LayerHandle id) {
 #endif
 }
 
+void genInstructions(LayerHandle id) {
+  MatrixMultiply * mm = (MatrixMultiply *) id;
+  mm -> printInstrGen();
+}
+
 InstrumentationData getInstrumentationData(LayerHandle id) {
   MatrixMultiply * mm = (MatrixMultiply *) id;
   acc->updateStateBreakdown();
   mm->perfSummary();
   mm->perfDetails();
+  mm->descrDetails();
   return instrumentationData;
 }
 

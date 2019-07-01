@@ -35,6 +35,8 @@
 #include <stdint.h>
 #include "BISMOInstruction.hpp"
 
+#include "FetchInstrGen.hpp"
+
 template <
   // matmul array dimensions: rows, common, cols
   unsigned int M, unsigned int K, unsigned int N,
@@ -43,6 +45,10 @@ template <
   // capacity of LHS and RHS memories (in elements)
   unsigned int LMEM, unsigned int RMEM
 >
+//really dirty hack to get this shit to compile into a so
+//#define BISMO_MMDESCR_BITS          208
+//#define BISMO_INSTR_BITS            128
+
 void FetchInstrGen_RHSLHSTiling_Templated(
   hls::stream<ap_uint<BISMO_MMDESCR_BITS>> & in,
   hls::stream<ap_uint<BISMO_INSTR_BITS>> & out

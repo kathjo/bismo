@@ -67,6 +67,8 @@ void syncLayerRHSBuffer(LayerHandle id);
 void syncLayerResBuffer(LayerHandle id);
 // execute layer with given handle
 void execMatMul(LayerHandle id);
+//
+void genInstructions(LayerHandle id);
 // struct representing all instrumentation data from the previous run
 typedef std::map<std::string,float> InstrumentationData;
 // retrieve a map of all instrumentation data from the previous run

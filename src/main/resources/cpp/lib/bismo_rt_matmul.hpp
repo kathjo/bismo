@@ -55,6 +55,10 @@ public:
   // execute matrix multiply on accelerator
   // does not synchronize input Matrix objects, remember to call host2accel
   void exec();
+  // execute matrix multiply on accelerator using user generated instructions
+  // does not synchronize input Matrix objects, remember to call host2accel
+  void execCustom();
+  void printInstrGen();
   // whether CPU-only execution is enabled
   bool has_cpu_ctx() const;
   // return gemmbitserial handle for CPU-only execution
@@ -80,6 +84,7 @@ public:
   // get performance summary and details (saved into bismo_rt::instrumentationData)
   void perfSummary();
   void perfDetails();
+  void descrDetails();
   // lhs/rhs/res member matrices, exposed for the sake of the API wrapper
   Matrix<uint8_t> * m_lhs, * m_rhs;
   Matrix<int32_t> * m_res;

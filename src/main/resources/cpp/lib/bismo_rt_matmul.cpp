@@ -28,6 +28,9 @@
 // CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#include <hls_stream.h>
+#include "BISMOInstruction.hpp"
+#include "FetchInstrGen.hpp"
 
 #include "bismo_rt_matmul.hpp"
 #include <iostream>
@@ -111,6 +114,41 @@ gemmbitserial::GEMMContext MatrixMultiply::getCPUContext() {
 void MatrixMultiply::exec() {
   acc->set_stage_enables(0, 0, 0);
   acc->useDescriptors();
+  // feed the instrgen descriptor
+  acc->pushSingleMMDescriptor(m_igen_dsc);
+  // HACK: make sure at least one op has appeared before checking for completion
+  // proper way to fix this is to singal completion from accel explicitly
+  while(acc->res_opcount() == 0) {};
+  // start the cycle counter
+  acc->perf_set_cc_enable(1);
+  // enable all stages
+  acc->set_stage_enables(1, 1, 1);
+  // wait until all writes are completed
+  while(acc->res_opcount() != 0) {};
+  // stop the cycle counter
+  acc->perf_set_cc_enable(0);
+  acc->set_stage_enables(0, 0, 0);
+};
+
+
+
+
+void MatrixMultiply::printInstrGen() {
+  cout << "Now generating Fetch Instructions" << endl;
+  hls::stream<ap_uint<BISMO_MMDESCR_BITS>> in;
+  hls::stream<ap_uint<BISMO_INSTR_BITS>> out;
+  BISMOInstruction ins;
+  in.write(m_igen_dsc.asRaw());
+  FetchInstrGen(in, out);
+  while(!out.empty()) {
+    ins = out.read();
+    cout << "Instruction: " << ins << endl;
+  }
+};
+
+void MatrixMultiply::execCustom() {
+  acc->set_stage_enables(0, 0, 0);
+  acc->useDirectInstructionFeed();
   // feed the instrgen descriptor
   acc->pushSingleMMDescriptor(m_igen_dsc);
   // HACK: make sure at least one op has appeared before checking for completion
@@ -294,5 +332,24 @@ void MatrixMultiply::perfDetails() {
   std::cout << "Execute stage efficiency: " << 100*exec_eff << "%" << std::endl;
   std::cout << "========================================================" << std::endl;
 #endif
+}
+
+void MatrixMultiply::descrDetails() {
+  std::cout << "MatMul Descriptor ==========================================" << std::endl;
+  std::cout << "dsc.tiles_m: " << m_igen_dsc.tiles_m << std::endl;
+  std::cout << "dsc.tiles_k: " << m_igen_dsc.tiles_k << std::endl;
+  std::cout << "dsc.tiles_n: " << m_igen_dsc.tiles_n << std::endl;
+  std::cout << "dsc.bits_l: " << m_igen_dsc.bits_l << std::endl;
+  std::cout << "dsc.bits_r: " << m_igen_dsc.bits_r << std::endl;
+  std::cout << "dsc.signed_l: " << m_igen_dsc.signed_l << std::endl;
+  std::cout << "dsc.signed_r: " << m_igen_dsc.signed_r << std::endl;
+  std::cout << "dsc.base_l: " << m_igen_dsc.base_l << std::endl;
+  std::cout << "dsc.base_r: " << m_igen_dsc.base_r << std::endl;
+  std::cout << "dsc.base_res: " << m_igen_dsc.base_res << std::endl;
+  std::cout << "dsc.nbufs_fetch_exec_log2: " << m_igen_dsc.nbufs_fetch_exec_log2 << std::endl;
+  std::cout << "dsc.dram_lhs: " << m_igen_dsc.dram_lhs << std::endl;
+  std::cout << "dsc.dram_rhs: " << m_igen_dsc.dram_rhs << std::endl;
+  std::cout << "dsc.dram_res: " << m_igen_dsc.dram_res << std::endl;
+  std::cout << "========================================================" << std::endl;
 }
 }

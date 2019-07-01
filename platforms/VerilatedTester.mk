@@ -49,10 +49,12 @@ sw: $(BUILD_DIR_HWDRV)/$(HW_SW_DRIVER)
 	mkdir -p $(BUILD_DIR_DEPLOY)/test; \
 	mkdir -p $(BUILD_DIR_DEPLOY)/rtlib; \
 	mkdir -p $(BUILD_DIR_DEPLOY)/hls_include; \
+	mkdir -p $(BUILD_DIR_DEPLOY)/hls; \
 	cp -rf $(BUILD_DIR_HWDRV)/* $(BUILD_DIR_DEPLOY)/driver/; \
 	cp -rf $(APP_SRC_DIR)/* $(BUILD_DIR_DEPLOY)/test/;
-	cp -rf $(RTLIB_SRC_DIR)/* $(BUILD_DIR_DEPLOY)/rtlib; \
+	cp -rf $(RTLIB_SRC_DIR)/* $(HLS_SRC_DIR)/FetchInstrGen* $(HLSTEST_SRC_DIR)/FetchInstrGen_TemplateDefs.hpp $(BUILD_DIR_DEPLOY)/rtlib; \
 	cp -rf $(HLS_SIM_INCL)/* $(BUILD_DIR_DEPLOY)/hls_include;
+	#cp -rf $(HLS_SRC_DIR)/FetchInstrGen* $(HLSTEST_SRC_DIR)/FetchInstrGen_TemplateDefs.hpp $(BUILD_DIR_DEPLOY)/hls;
 
 emu: rtlib_emu
 	cd $(BUILD_DIR_DEPLOY); \
