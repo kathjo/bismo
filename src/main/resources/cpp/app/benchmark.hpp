@@ -33,6 +33,7 @@
 using namespace std;
 #include "gemmbitserial/test/testhelpers.hpp"
 #include "bismo_rt.hpp"
+#include "BISMOTests.hpp"
 
 const char * delimiter = ", ";
 
