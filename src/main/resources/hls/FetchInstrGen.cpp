@@ -73,7 +73,10 @@ io_section:{
   ap_wait();
 
   // mems are divided into regions to provide fetch-exec concurrency
-  const uint8_t lmem_num_regions = (1 << ins_in.nbufs_fetch_exec_log2);
+  if (ins_in.tiles_m > (1 << ins_in.nbufs_fetch_exec_log2)) {
+    throw "To many lefthand side tiles to be held at once by BRAM buffers";
+  }
+  const uint8_t lmem_num_regions = ins_in.tiles_m;
   const uint16_t lmem_region_size = (LMEM >> ins_in.nbufs_fetch_exec_log2);
   uint8_t lmem_region = 0;
   uint16_t lmem_region_offset = 0;
