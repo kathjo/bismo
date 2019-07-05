@@ -105,6 +105,13 @@ void benchmark_gemm_interactive() {
     cin >> depth >> cols;
     cout << "Enter lhs and rhs bits: " << endl;
     cin >> lhsbits >> rhsbits;
+    bool all_OK = true;
+    all_OK &= test( to_string(rows)+"x"+to_string(depth)+"x"+to_string(cols)+" "+to_string(lhsbits)+" "+to_string(rhsbits), rows, depth, cols, lhsbits, rhsbits);
+    if(all_OK) {
+      cout << "All tests passed succesfully" << endl;
+    } else {
+      cout << "Some tests failed!" << endl;
+    }
     bismo_rt::InstrumentationData ret = run_benchmark_matmul(rows, cols, depth, lhsbits, rhsbits);
     printInstrumentationHeaders(ret);
     printInstrumentationData(ret);
