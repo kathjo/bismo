@@ -77,7 +77,7 @@ io_section:{
     throw "To many lefthand side tiles to be held at once by BRAM buffers";
   }
   const uint8_t lmem_num_regions = ins_in.tiles_m;
-  const uint16_t lmem_region_size = (LMEM >> ins_in.nbufs_fetch_exec_log2);
+  const uint16_t lmem_region_size = LMEM/lmem_num_regions;//(LMEM >> ins_in.nbufs_fetch_exec_log2);
   uint8_t lmem_region = 0;
   uint16_t lmem_region_offset = 0;
 
@@ -165,8 +165,8 @@ io_section:{
       fetch.tiles_per_row = ins_in.tiles_k << ETF_S;
       // emit fetch instruction for LHS matrix
       out.write(fetch.asRaw());
-      ap_wait();
     }
+    ap_wait();
     // signal that LHS buffer now filled
     // send token to execute stage
     sync.isSendToken = 1;
