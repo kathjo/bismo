@@ -33,7 +33,7 @@
 using namespace std;
 #include "gemmbitserial/test/testhelpers.hpp"
 #include "bismo_rt.hpp"
-#include "BISMOTests.hpp"
+//#include "BISMOTests.hpp"
 
 const char * delimiter = ", ";
 
@@ -106,8 +106,8 @@ void benchmark_gemm_interactive() {
     cin >> depth >> cols;
     cout << "Enter lhs and rhs bits: " << endl;
     cin >> lhsbits >> rhsbits;
-    bool all_OK = true;
-    all_OK &= test( to_string(rows)+"x"+to_string(depth)+"x"+to_string(cols)+" "+to_string(lhsbits)+" "+to_string(rhsbits), rows, depth, cols, lhsbits, rhsbits);
+    bool all_OK = false;
+    all_OK = test( to_string(rows)+"x"+to_string(depth)+"x"+to_string(cols)+" "+to_string(lhsbits)+" "+to_string(rhsbits),rows, cols, depth, lhsbits, rhsbits);
     if(all_OK) {
       cout << "All tests passed succesfully" << endl;
     } else {
