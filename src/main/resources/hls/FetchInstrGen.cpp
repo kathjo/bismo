@@ -76,10 +76,46 @@ io_section:{
   //if (ins_in.tiles_m > (1 << ins_in.nbufs_fetch_exec_log2)) {
   //  throw "To many lefthand side tiles to be held at once by BRAM buffers";
   //}
-  const uint8_t lmem_num_regions = ins_in.tiles_m;
-  const uint16_t lmem_region_size = LMEM/lmem_num_regions;//(LMEM >> ins_in.nbufs_fetch_exec_log2);
+  const uint8_t lmem_region_size = K*ins_in.tiles_k*ins_in.bits_l;
+  // complete buffer (LMEM*K) / single slice (tiles_k*K*bits_l)
+  const uint16_t lmem_num_regions = LMEM*K/lmem_region_size;//(LMEM >> ins_in.nbufs_fetch_exec_log2);
   uint8_t lmem_region = 0;
   uint16_t lmem_region_offset = 0;
+
+  uint16_t q_0,q_1;
+  uint16_t l, k;
+  uint16_t p_0,p_1,r,k2;
+
+  q_0 = ins_in.tiles_m/(lmem_num_regions - 2);
+  k = ins_in.tiles_m - (lmem_num_regions - 2) * q_0;
+  l = (lmem_num_regions - 2) - k;
+
+  if(k > l) {
+    k2 = k;
+    k = l;
+    l = k2;
+    q_1 = q_0;
+    q_0 = q_0 + 1;
+  }else{
+    q_1 = q_0 + 1;
+  }
+
+  p_0 = l/k;
+  p_1 = p_0 + 1;
+  r = l - k * p_0;
+
+  if(r != 0){
+    if(k == r){
+      k2 = 1;
+    }else{
+        k2 = k/r;
+        if(!(k2 > 1)){
+          k2 = k/(k-r);
+          p_1 = p_0;
+          p_0 = p_0 + 1;
+        }        
+    }
+  }
 
   const uint8_t rmem_num_regions = (1 << ins_in.nbufs_fetch_exec_log2);
   const uint16_t rmem_region_size = (RMEM >> ins_in.nbufs_fetch_exec_log2);
