@@ -84,7 +84,7 @@ io_section:{
 
   // compute the size of the iteration space
   const unsigned int total_iters = ins_in.tiles_m * ins_in.tiles_n * ins_in.tiles_k;
-  uint16_t n = 0, m = 0; l = 1; r = 0;
+  uint16_t n = 0, m = 0, l = 0, r = 0;
 
   for(uint16_t i = 0; i < total_iters; i++) {
     if(m == 0) {
@@ -149,7 +149,7 @@ io_section:{
     // dram_block_offset_bytes! other option is to generate one
     // fetch instruction per bit position...
     // DRAM base address for LHS
-    const uint16_t offset_l = ins_in.tiles_k * l;
+    const uint16_t offset_l = bytes_per_lhs_tile * l;
     fetch.dram_base = ins_in.dram_lhs + m * ins_in.tiles_k * bytes_per_lhs_tile;
     fetch.bram_addr_base = (ins_in.base_l + lmem_region_offset + offset_l) << ETF_S;
     fetch.bram_id_start = first_lhs_id;
@@ -160,7 +160,7 @@ io_section:{
     fetch.tiles_per_row = ins_in.tiles_k << ETF_S;
     // emit fetch instruction for RHS matrix
     out.write(fetch.asRaw());
-    if(l == tile_last) {
+    if(l == ins_in.tiles_k - 1) {
       //inner loop end
       ap_wait();
       // signal that LHS buffer now filled
@@ -191,6 +191,7 @@ io_section:{
       }
     }
   }
+}
 }
 
 #include "FetchInstrGen_TemplateDefs.hpp"
