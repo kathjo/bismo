@@ -68,7 +68,7 @@ MatrixMultiply::MatrixMultiply(
     throw "RHS is too large and not currently supported in runtime library.";
   }
   const bool lhs_tile_fits_in_ocm = (acc->get_lhs_total_BRAM_bytes()) >= FETCHEXEC_TOKENS*lhs_stripe_nbytes;
-  const bool lhs_tile_is_one_fetchblock = lhs_stripe_nbytes <= FETCH_BLOCK_MAX;
+  const bool lhs_tile_is_one_fetchblock = lhs_stripe_nbytes / tiles_k <= FETCH_BLOCK_MAX;
   if(!lhs_tile_is_one_fetchblock || !lhs_tile_fits_in_ocm) {
     throw "LHS is too large and not currently supported in runtime library.";
   }
