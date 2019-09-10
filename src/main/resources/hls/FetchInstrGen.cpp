@@ -83,11 +83,13 @@ io_section:{
   const int bytes_per_lhs_tile = (M * K) / 8;
 
   // compute the size of the iteration space
-  const unsigned int total_iters = ins_in.tiles_m * ins_in.tiles_n * ins_in.tiles_k;
+  const uint16_t total_iters = ins_in.tiles_m * ins_in.tiles_n * ins_in.tiles_k;
   uint16_t n = 0, m = 0, l = 0, r = 0;
 
   for(uint16_t i = 0; i < total_iters; i++) {
-    if(m == 0) {
+    const bool tile_first = (l == 0);
+    const bool tile_last = (l == (ins_in.tiles_k  - 1));
+    if(m == 0 && tile_first) {
       // receive token from execute stage representing RHS buf
       sync.isSendToken = 0;
       sync.chanID = 0;
@@ -129,7 +131,7 @@ io_section:{
         rmem_region_offset = 0;
       }
     }
-    if(l == 0) {
+    if(tile_first) {
       // receive token from execute stage representing LHS buf
       sync.isSendToken = 0;
       sync.chanID = 0;
@@ -150,17 +152,17 @@ io_section:{
     // fetch instruction per bit position...
     // DRAM base address for LHS
     const uint16_t offset_l = bytes_per_lhs_tile * l;
-    fetch.dram_base = ins_in.dram_lhs + m * ins_in.tiles_k * bytes_per_lhs_tile;
+    fetch.dram_base = ins_in.dram_lhs + m * ins_in.tiles_k * bytes_per_lhs_tile + offset_l;
     fetch.bram_addr_base = (ins_in.base_l + lmem_region_offset + offset_l) << ETF_S;
     fetch.bram_id_start = first_lhs_id;
     // ID range of BRAM: 0 for LHS, 1 for RHS
     fetch.bram_id_range = 0;
     // how many DRAM data words are copied before the
     // fetch interconnect starts targeting the next BRAM
-    fetch.tiles_per_row = ins_in.tiles_k << ETF_S;
+    fetch.tiles_per_row = 1 << ETF_S;
     // emit fetch instruction for RHS matrix
     out.write(fetch.asRaw());
-    if(l == ins_in.tiles_k - 1) {
+    if(tile_last) {
       //inner loop end
       ap_wait();
       // signal that LHS buffer now filled
