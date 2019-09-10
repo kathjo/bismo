@@ -361,9 +361,9 @@ class BitSerialMatMulAccel(
     insDeinterleave.out(2).ready := resultOpQ.enq.ready
   }
 
-  /*PrintableBundleStreamMonitor(fetchOpQ.enq, Bool(true), "fetchOpQ", true)
+  PrintableBundleStreamMonitor(fetchOpQ.enq, Bool(true), "fetchOpQ", true)
   PrintableBundleStreamMonitor(execOpQ.enq, Bool(true), "execOpQ", true)
-  PrintableBundleStreamMonitor(resultOpQ.enq, Bool(true), "resultOpQ", true)*/
+  PrintableBundleStreamMonitor(resultOpQ.enq, Bool(true), "resultOpQ", true)
 
   /*when(fetchOpQ.enq.fire()) {
     printf("Raw fetch instr: %x \n", fetchOpQ.enq.bits.toBits())

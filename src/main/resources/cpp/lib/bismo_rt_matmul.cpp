@@ -128,7 +128,8 @@ void MatrixMultiply::exec() {
     std::cout << acc->fetch_opcount() << std::endl;
     std::cout << acc->exec_opcount() << std::endl;
     std::cout << acc->res_opcount() << std::endl;
-    usleep(100000);
+
+    acc->printTokenCounts();
   };
   acc->perf_set_cc_enable(0);
   // stop the cycle counter

@@ -167,10 +167,10 @@ class FetchDecoupledController extends DecoupledController(
   genInstr = new BISMOFetchRunInstruction(),
   instr2StageO = (x: BISMOFetchRunInstruction) => x.runcfg
 ){
-  /*val prevState = Reg(next=regState)
+  val prevState = Reg(next=regState)
   when(regState != prevState) {
     printf("FetchController state: %d -> %d\n", prevState, regState)
-  }*/
+  }
 }
 
 class ExecDecoupledController extends DecoupledController(
@@ -178,10 +178,10 @@ class ExecDecoupledController extends DecoupledController(
   genInstr = new BISMOExecRunInstruction(),
   instr2StageO = (x: BISMOExecRunInstruction) => x.runcfg
 ){
-  /*val prevState = Reg(next=regState)
+  val prevState = Reg(next=regState)
   when(regState != prevState) {
     printf("ExecController state: %d -> %d\n", prevState, regState)
-  }*/
+  }
 }
 
 class ResultDecoupledController extends DecoupledController(
