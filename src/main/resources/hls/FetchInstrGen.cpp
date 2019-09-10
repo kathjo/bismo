@@ -50,17 +50,25 @@ void FetchInstrGen_RHSLHSTiling_Templated(
   #pragma HLS INTERFACE ap_ctrl_none port=return
   #pragma HLS INTERFACE axis port=out
   #pragma HLS INTERFACE axis port=in
-io_section:{
-  #pragma HLS protocol fixed
 
   BISMOFetchRunInstruction fetch;
-  BISMOSyncInstruction sync;
+  BISMOSyncInstruction sync_rec;
+  BISMOSyncInstruction sync_send;
 
   // set the invariants (values do not depend on loop iter)
-  sync.targetStage = stgFetch;
+  sync_rec.targetStage = stgFetch;
+  sync_rec.isRunCfg = 0;
+  sync_rec.isSendToken = 0;
+  sync_rec.chanID = 0;
+
+  sync_send.targetStage = stgFetch;
+  sync_send.isRunCfg = 0;
+  sync_send.isSendToken = 1;
+  sync_send.chanID = 0;
+
   fetch.targetStage = stgFetch;
   fetch.isRunCfg = 1;
-  sync.isRunCfg = 0;
+  
   // read the descriptor
   SingleMMDescriptor ins_in;
   ins_in.fromRaw(in.read());
@@ -90,11 +98,7 @@ io_section:{
     const bool tile_first = (k_l == 0);
     const bool tile_last = (k_l == (ins_in.tiles_k  - 1));
     if(m == 0 && tile_first) {
-      // receive token from execute stage representing RHS buf
-      sync.isSendToken = 0;
-      sync.chanID = 0;
-      out.write(sync.asRaw());
-      ap_wait();
+      
       // fill RHS buffer
       // each bit position is one block
       fetch.dram_block_count = ins_in.bits_r;
@@ -115,14 +119,19 @@ io_section:{
       // how many DRAM data words are copied before the
       // fetch interconnect starts targeting the next BRAM
       fetch.tiles_per_row = ins_in.tiles_k << ETF_S;
+      
+      io_section:{
+  #pragma HLS protocol fixed
+  // receive token from execute stage representing RHS buf
+      out.write(sync_rec.asRaw());
+      ap_wait();
       // emit fetch instruction for RHS matrix
       out.write(fetch.asRaw());
       ap_wait();
       // signal that RHS buffer now filled
       // send token to execute stage
-      sync.isSendToken = 1;
-      sync.chanID = 0;
-      out.write(sync.asRaw());
+      out.write(sync_send.asRaw());
+      }
       // use the next rmem region for following fetch
       rmem_region++;
       rmem_region_offset += rmem_region_size;
@@ -130,14 +139,6 @@ io_section:{
         rmem_region = 0;
         rmem_region_offset = 0;
       }
-    }
-    // synchronisation takes place only for every tile_m
-    if(tile_first) {
-      // receive token from execute stage representing LHS buf
-      sync.isSendToken = 0;
-      sync.chanID = 0;
-      out.write(sync.asRaw());
-      ap_wait();
     }
     // inner loop beginning for fetching blocks==lhs_tile_k
 
@@ -164,22 +165,30 @@ io_section:{
     // fetch interconnect starts targeting the next BRAM
     fetch.tiles_per_row = 1 << ETF_S;
     // emit fetch instruction for RHS matrix
-    out.write(fetch.asRaw());
-    if(tile_last) {
-      //inner loop end
+    io_section:{
+    #pragma HLS protocol fixed
+    // synchronisation takes place only for every tile_m
+      if(tile_first) {
+        // receive token from execute stage representing LHS buf
+        out.write(sync_rec.asRaw());
+        ap_wait();
+      }
+      out.write(fetch.asRaw());
       ap_wait();
-      // signal that LHS buffer now filled
-      // send token to execute stage
-      sync.isSendToken = 1;
-      sync.chanID = 0;
-      out.write(sync.asRaw());
-    
-      // use the next lmem region for following fetch
-      lmem_region++;
-      lmem_region_offset += lmem_region_size;
-      if(lmem_region == lmem_num_regions) {
-        lmem_region = 0;
-        lmem_region_offset = 0;
+      if(tile_last) {
+        //inner loop end
+        
+        // signal that LHS buffer now filled
+        // send token to execute stage
+        out.write(sync_send.asRaw());
+        ap_wait();
+        // use the next lmem region for following fetch
+        lmem_region++;
+        lmem_region_offset += lmem_region_size;
+        if(lmem_region == lmem_num_regions) {
+          lmem_region = 0;
+          lmem_region_offset = 0;
+        }
       }
     }
     // iteration tracking logic: nested loops over tiles
@@ -196,7 +205,6 @@ io_section:{
       }
     }
   }
-}
 }
 
 #include "FetchInstrGen_TemplateDefs.hpp"
