@@ -84,11 +84,11 @@ io_section:{
 
   // compute the size of the iteration space
   const uint16_t total_iters = ins_in.tiles_m * ins_in.tiles_n * ins_in.tiles_k;
-  uint16_t n = 0, m = 0, l = 0, r = 0;
+  uint16_t n = 0, m = 0, k_l = 0;
 
   for(uint16_t i = 0; i < total_iters; i++) {
-    const bool tile_first = (l == 0);
-    const bool tile_last = (l == (ins_in.tiles_k  - 1));
+    const bool tile_first = (k_l == 0);
+    const bool tile_last = (k_l == (ins_in.tiles_k  - 1));
     if(m == 0 && tile_first) {
       // receive token from execute stage representing RHS buf
       sync.isSendToken = 0;
@@ -131,6 +131,7 @@ io_section:{
         rmem_region_offset = 0;
       }
     }
+    // synchronisation takes place only for every tile_m
     if(tile_first) {
       // receive token from execute stage representing LHS buf
       sync.isSendToken = 0;
@@ -138,7 +139,7 @@ io_section:{
       out.write(sync.asRaw());
       ap_wait();
     }
-    // inner loop beginning for fetching blocks==lhs_tile
+    // inner loop beginning for fetching blocks==lhs_tile_k
 
     // fill LHS buffer
     // each bit position is one block
@@ -150,8 +151,10 @@ io_section:{
     // IMPORTANT TODO: put in SW assertions around sizes of these, especially
     // dram_block_offset_bytes! other option is to generate one
     // fetch instruction per bit position...
+    
+    // offset for base address increases every tile_k
+    const uint16_t offset_l = bytes_per_lhs_tile * k_l;
     // DRAM base address for LHS
-    const uint16_t offset_l = bytes_per_lhs_tile * l;
     fetch.dram_base = ins_in.dram_lhs + m * ins_in.tiles_k * bytes_per_lhs_tile + offset_l;
     fetch.bram_addr_base = (ins_in.base_l + lmem_region_offset + offset_l) << ETF_S;
     fetch.bram_id_start = first_lhs_id;
@@ -180,9 +183,9 @@ io_section:{
       }
     }
     // iteration tracking logic: nested loops over tiles
-    l++;
-    if(l == ins_in.tiles_k){
-      l = 0;
+    k_l++;
+    if(k_l == ins_in.tiles_k){
+      k_l = 0;
       m++;
       if(m == ins_in.tiles_m) {
         m = 0;

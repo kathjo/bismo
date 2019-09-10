@@ -41,32 +41,6 @@ void FetchInstrGen(
   hls::stream<ap_uint<BISMO_INSTR_BITS>> & out
 );
 
-void make_golden(hls::stream<ap_uint<BISMO_INSTR_BITS>> & out) {
-  out.write(ap_uint<BISMO_INSTR_BITS>("0", 16));
-  out.write(ap_uint<BISMO_INSTR_BITS>("08030002000040000003E800008084", 16));
-  out.write(ap_uint<BISMO_INSTR_BITS>("08", 16));
-  out.write(ap_uint<BISMO_INSTR_BITS>("0", 16));
-  out.write(ap_uint<BISMO_INSTR_BITS>("080300020000400000042802008084", 16));
-  out.write(ap_uint<BISMO_INSTR_BITS>("08", 16));
-  out.write(ap_uint<BISMO_INSTR_BITS>("0", 16));
-  out.write(ap_uint<BISMO_INSTR_BITS>("080300020000400000046804008084", 16));
-  out.write(ap_uint<BISMO_INSTR_BITS>("08", 16));
-  out.write(ap_uint<BISMO_INSTR_BITS>("0", 16));
-  out.write(ap_uint<BISMO_INSTR_BITS>("08030002000040000004A806008084", 16));
-  out.write(ap_uint<BISMO_INSTR_BITS>("08", 16));
-  out.write(ap_uint<BISMO_INSTR_BITS>("0", 16));
-  out.write(ap_uint<BISMO_INSTR_BITS>("08030002000040000004E800008084", 16));
-  out.write(ap_uint<BISMO_INSTR_BITS>("08", 16));
-  out.write(ap_uint<BISMO_INSTR_BITS>("0", 16));
-  out.write(ap_uint<BISMO_INSTR_BITS>("080300020000400000052802008084", 16));
-  out.write(ap_uint<BISMO_INSTR_BITS>("08", 16));
-  out.write(ap_uint<BISMO_INSTR_BITS>("0", 16));
-  out.write(ap_uint<BISMO_INSTR_BITS>("080300020000400000056804008084", 16));
-  out.write(ap_uint<BISMO_INSTR_BITS>("08", 16));
-  out.write(ap_uint<BISMO_INSTR_BITS>("0", 16));
-  out.write(ap_uint<BISMO_INSTR_BITS>("08030002000040000005A806008084", 16));
-  out.write(ap_uint<BISMO_INSTR_BITS>("08", 16));
-}
 
 void make_first(hls::stream<ap_uint<BISMO_INSTR_BITS>> & out) {
   out.write(ap_uint<BISMO_INSTR_BITS>("0", 16));
@@ -80,7 +54,6 @@ bool TestFetchInstrGen() {
   cout << "Now running HLS Test for FetchInstrGen" << endl;
   hls::stream<ap_uint<BISMO_MMDESCR_BITS>> in;
   hls::stream<ap_uint<BISMO_INSTR_BITS>> out;
-  hls::stream<ap_uint<BISMO_INSTR_BITS>> golden;
   hls::stream<ap_uint<BISMO_INSTR_BITS>> first;
   hls::stream<ap_uint<BISMO_INSTR_BITS>> second;
   SingleMMDescriptor desc;
@@ -96,7 +69,6 @@ bool TestFetchInstrGen() {
   desc.dram_lhs = 0;
   desc.dram_rhs = 1000;
   in.write(desc.asRaw());
-  //make_golden(golden);
   make_first(first);
   make_second(second);
   FetchInstrGen(in, out);
@@ -118,10 +90,8 @@ bool TestFetchInstrGen() {
   int m_loops;
   while(!out.empty()) {
     ins = out.read();
-    //golden_ins = golden.read();
-    //all_OK &= (ins == golden_ins);
-    //if(ins != golden_ins) {
-    //cout << "ERROR: Mismatch found. Expected: " << golden_ins << endl;
+
+    //check for sync receive instr before fetch rhs
     if(idx % (desc.tiles_m * (desc.tiles_k + 2) + 3) == 0 ) {
       if(ins != first_ins) {
         cout << "Index: " << idx << endl;
@@ -131,6 +101,7 @@ bool TestFetchInstrGen() {
         all_OK = false;
       } 
     }
+    //check for sync send instr after fetch rhs
     if(idx % (desc.tiles_m * (desc.tiles_k + 2) + 3) == 2){
       if(ins != second_ins) {
         cout << "Index: " << idx << endl;
@@ -140,8 +111,10 @@ bool TestFetchInstrGen() {
         all_OK = false;
       } 
     }
+    // calculate index range for lhs fetch instructions
     m_loops = idx % (desc.tiles_m * (desc.tiles_k + 2) + 3);
     m_loops = m_loops - 3;
+    //check for sync receive instr before fetch lhs
     if(m_loops % (desc.tiles_k + 2) == 0) {
       if(ins != first_ins) {
         cout << "Index: " << idx << endl;
@@ -152,6 +125,7 @@ bool TestFetchInstrGen() {
         all_OK = false;      
       }
     }
+    //check for sync send instr after fetch lhs
     if(m_loops % (desc.tiles_k + 2) == desc.tiles_k + 1) {
       if(ins != second_ins) {
         cout << "Index: " << idx << endl;
