@@ -120,7 +120,7 @@ void FetchInstrGen_RHSLHSTiling_Templated(
       // fetch interconnect starts targeting the next BRAM
       fetch.tiles_per_row = ins_in.tiles_k << ETF_S;
       
-      io_section:{
+      io_section_0:{
   #pragma HLS protocol fixed
   // receive token from execute stage representing RHS buf
       out.write(sync_rec.asRaw());
@@ -154,10 +154,11 @@ void FetchInstrGen_RHSLHSTiling_Templated(
     // fetch instruction per bit position...
     
     // offset for base address increases every tile_k
-    const uint16_t offset_l = bytes_per_lhs_tile * k_l;
+    const uint16_t dram_offset_l = bytes_per_lhs_tile * k_l;
+    const uint16_t bram_offset_l = ins_in.bits_l * k_l;
     // DRAM base address for LHS
-    fetch.dram_base = ins_in.dram_lhs + m * ins_in.tiles_k * bytes_per_lhs_tile + offset_l;
-    fetch.bram_addr_base = (ins_in.base_l + lmem_region_offset + offset_l) << ETF_S;
+    fetch.dram_base = ins_in.dram_lhs + m * ins_in.tiles_k * bytes_per_lhs_tile + dram_offset_l;
+    fetch.bram_addr_base = (ins_in.base_l + lmem_region_offset + bram_offset_l) << ETF_S;
     fetch.bram_id_start = first_lhs_id;
     // ID range of BRAM: 0 for LHS, 1 for RHS
     fetch.bram_id_range = 0;
@@ -165,7 +166,7 @@ void FetchInstrGen_RHSLHSTiling_Templated(
     // fetch interconnect starts targeting the next BRAM
     fetch.tiles_per_row = 1 << ETF_S;
     // emit fetch instruction for RHS matrix
-    io_section:{
+    io_section_1:{
     #pragma HLS protocol fixed
     // synchronisation takes place only for every tile_m
       if(tile_first) {

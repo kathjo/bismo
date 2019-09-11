@@ -409,7 +409,7 @@ class BitSerialMatMulAccel(
     tilemem_lhs(m).ports(0).req := fetchStage.bram.lhs_req(m)
     tilemem_lhs(m).ports(1).req := execStage.tilemem.lhs_req(m)
     execStage.tilemem.lhs_rsp(m) := tilemem_lhs(m).ports(1).rsp
-    //when(tilemem_lhs(m).ports(0).req.writeEn) { printf("LHS BRAM %d write: addr %d data %x\n", UInt(m), tilemem_lhs(m).ports(0).req.addr, tilemem_lhs(m).ports(0).req.writeData) }
+    when(tilemem_lhs(m).ports(0).req.writeEn) { printf("LHS BRAM %d write: addr %d data %x\n", UInt(m), tilemem_lhs(m).ports(0).req.addr, tilemem_lhs(m).ports(0).req.writeData) }
   }
   for(m <- 0 until myP.dpaDimRHS) {
     tilemem_rhs(m).ports(0).req := fetchStage.bram.rhs_req(m)
