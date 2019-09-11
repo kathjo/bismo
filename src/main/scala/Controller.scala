@@ -167,10 +167,10 @@ class ResultController extends BaseController(
   genInstr = new BISMOResultRunInstruction(),
   instr2StageO = (x: BISMOResultRunInstruction) => x.runcfg
 ){
-  /*val prevState = Reg(next=regState)
+  val prevState = Reg(next=regState)
   when(regState != prevState) {
     printf("ResultController state: %d -> %d\n", prevState, regState)
-  }*/
+  }
 }
 
 /*

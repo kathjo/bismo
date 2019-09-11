@@ -31,6 +31,7 @@
 
 #include "bismo_rt_matmul.hpp"
 #include <iostream>
+#include <unistd.h>
 
 namespace bismo_rt {
 MatrixMultiply::MatrixMultiply(
@@ -121,7 +122,16 @@ void MatrixMultiply::exec() {
   // enable all stages
   acc->set_stage_enables(1, 1, 1);
   // wait until all writes are completed
-  while(acc->res_opcount() != 0) {};
+  while(acc->res_opcount() != 0) {
+    std::cout << "fetch, exec, res opcounts: " << std::endl;
+    std::cout << acc->fetch_opcount() << std::endl;
+    std::cout << acc->exec_opcount() << std::endl;
+    std::cout << acc->res_opcount() << std::endl;
+
+    acc->printTokenCounts();
+
+    usleep(100000);
+  };
   // stop the cycle counter
   acc->perf_set_cc_enable(0);
   acc->set_stage_enables(0, 0, 0);
