@@ -74,8 +74,9 @@ void FetchInstrGen_RHSLHSTiling_Templated(
   ap_wait();
 
   // mems are divided into regions to provide fetch-exec concurrency
-  const uint8_t lmem_num_regions = (1 << ins_in.nbufs_fetch_exec_log2);
-  const uint16_t lmem_region_size = (LMEM >> ins_in.nbufs_fetch_exec_log2);
+  const uint8_t lmem_num_regions = ins_in.tiles_m;
+  const uint16_t lmem_region_size = (LMEM / lmem_num_regions);
+  const bool lhs_tiles_fit = lmem_region_size >= ins_in.tiles_k * bytes_per_lhs_tile * ins_in.bits_l;
   uint8_t lmem_region = 0;
   uint16_t lmem_region_offset = 0;
 
@@ -137,6 +138,7 @@ void FetchInstrGen_RHSLHSTiling_Templated(
         rmem_region_offset = 0;
       }
     }
+    if(n == 0 || !lhs_tiles_fit){
     // fill LHS buffer
     // each bit position is one block
     fetch.dram_block_count = ins_in.bits_l;
@@ -169,6 +171,17 @@ void FetchInstrGen_RHSLHSTiling_Templated(
       // send token to execute stage
       out.write(sync_send.asRaw());
       }
+    }else{
+      io_section_1:{
+      #pragma HLS protocol fixed
+      // receive token from execute stage representing LHS buf
+      out.write(sync_rec.asRaw());
+      ap_wait();
+      // signal that RHS buffer now filled
+      // send token to execute stage
+      out.write(sync_send.asRaw());
+      }
+    }
     // use the next lmem region for following fetch
     lmem_region++;
     lmem_region_offset += lmem_region_size;
