@@ -75,14 +75,24 @@ io_section:{
   // l and r are derived from the loop indices
   uint8_t l = 0, r = 0;
   // mems are divided into regions to provide fetch-exec concurrency
-  const uint8_t lmem_num_regions = (1 << ins_in.nbufs_fetch_exec_log2);
-  const uint16_t lmem_region_size = (LMEM >> ins_in.nbufs_fetch_exec_log2);
+  uint8_t lmem_num_regions = (1 << ins_in.nbufs_fetch_exec_log2);
+  uint16_t lmem_region_size = (LMEM >> ins_in.nbufs_fetch_exec_log2);
+  const uint8_t lmem_num_regions_new = ins_in.tiles_m;
+  const uint16_t lmem_region_size_new = (LMEM / lmem_num_regions_new);
   uint8_t lmem_region = 0;
   uint16_t lmem_region_offset = 0;
   const uint8_t rmem_num_regions = (1 << ins_in.nbufs_fetch_exec_log2);
   const uint16_t rmem_region_size = (RMEM >> ins_in.nbufs_fetch_exec_log2);
   uint8_t rmem_region = 0;
   uint16_t rmem_region_offset = 0;
+  
+  const bool lhs_tiles_fit = lmem_region_size_new >= ins_in.tiles_k * ins_in.bits_l;
+
+  if(lhs_tiles_fit){
+    lmem_num_regions = lmem_num_regions_new;
+    lmem_region_size = lmem_region_size_new;
+  }
+
   // single iteration space for the entire instrgen
   for(unsigned int i = 0; i < total_iters; i++) {
     #pragma HLS PIPELINE II=1

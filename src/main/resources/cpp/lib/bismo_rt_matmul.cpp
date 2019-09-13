@@ -68,7 +68,7 @@ MatrixMultiply::MatrixMultiply(
   // there is a separate fetchblock for every bit-position
   const bool rhs_tile_is_one_fetchblock = (rhs_stripe_nbytes / m_rhs->bits())<= FETCH_BLOCK_MAX;
   if(!rhs_tile_fits_in_ocm) {
-    throw "RHS is too large and not currently supported in runtime library. \n\nA single RHS stripe (D_n * K * lhs-bits) does not fit into On-Chip-Memory";
+    throw "RHS is too large and not currently supported in runtime library. \n\nA single RHS stripe (D_n * K * rhs-bits) does not fit into On-Chip-Memory";
   }
   if(!rhs_tile_is_one_fetchblock) {
     throw "RHS is too large and not currently supported in runtime library. \n\nA single fetchblock in bytes (D_n * K / 8) is to large to be encoded internaly";

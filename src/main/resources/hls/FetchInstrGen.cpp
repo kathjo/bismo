@@ -74,9 +74,10 @@ void FetchInstrGen_RHSLHSTiling_Templated(
   ap_wait();
 
   // mems are divided into regions to provide fetch-exec concurrency
-  const uint8_t lmem_num_regions = ins_in.tiles_m;
-  const uint16_t lmem_region_size = (LMEM / lmem_num_regions);
-  const bool lhs_tiles_fit = lmem_region_size >= ins_in.tiles_k * bytes_per_lhs_tile * ins_in.bits_l;
+  uint8_t lmem_num_regions = (1 << ins_in.nbufs_fetch_exec_log2);
+  uint16_t lmem_region_size = (LMEM >> ins_in.nbufs_fetch_exec_log2);
+  const uint8_t lmem_num_regions_new = ins_in.tiles_m;
+  const uint16_t lmem_region_size_new = (LMEM / lmem_num_regions_new);
   uint8_t lmem_region = 0;
   uint16_t lmem_region_offset = 0;
 
@@ -89,6 +90,13 @@ void FetchInstrGen_RHSLHSTiling_Templated(
   const int first_rhs_id = M;
   const int bytes_per_rhs_tile = (N * K) / 8;
   const int bytes_per_lhs_tile = (M * K) / 8;
+
+  const bool lhs_tiles_fit = lmem_region_size_new >= ins_in.tiles_k * ins_in.bits_l;
+
+  if(lhs_tiles_fit){
+    lmem_num_regions = lmem_num_regions_new;
+    lmem_region_size = lmem_region_size_new;
+  }
 
   // compute the size of the iteration space
   const unsigned int total_iters = ins_in.tiles_m * ins_in.tiles_n;
@@ -172,7 +180,7 @@ void FetchInstrGen_RHSLHSTiling_Templated(
       out.write(sync_send.asRaw());
       }
     }else{
-      io_section_1:{
+      io_section_2:{
       #pragma HLS protocol fixed
       // receive token from execute stage representing LHS buf
       out.write(sync_rec.asRaw());
