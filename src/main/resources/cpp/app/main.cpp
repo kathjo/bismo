@@ -59,8 +59,8 @@ int main(int argc, char const *argv[]) {
       bismo_rt::deinit();
       // following tests call init/deinit themselves
       all_OK &= test_binary_onchip_onetile(hwcfg);
-      all_OK &= test_multibit_onchip_onetile(hwcfg);
       all_OK &= test_multibit_multitile(hwcfg);
+      all_OK &= test_multibit_onchip_onetile(hwcfg);
       if(all_OK) {
         cout << "All tests passed succesfully" << endl;
       } else {

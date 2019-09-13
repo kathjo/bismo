@@ -37,7 +37,7 @@
 // enable to compare hw-produced results against sw-produced ones
 // this produces additional instrumentation data:
 // cpu_gemmbitserial_lhs_p2s, cpu_gemmbitserial_rhs_p2s, cpu_gemmbitserial_exec
-//#define BISMORT_MATMUL_VERIFY_AGAINST_CPU
+#define BISMORT_MATMUL_VERIFY_AGAINST_CPU
 // enable to benchmark against a gemmlowp implementation with each matmul call
 // this produces additional instrumentation data:
 // cpu_gemmlowp_exec
