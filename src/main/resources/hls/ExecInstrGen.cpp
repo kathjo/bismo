@@ -176,8 +176,10 @@ io_section:{
       out.write(sync.asRaw());
       ap_wait();
       // use the next rmem region for following fetch
-      lmem_region++;
-      lmem_region_offset += lmem_region_size;
+      if(m_is_even){
+        lmem_region++;
+        lmem_region_offset += lmem_region_size;
+      }
       if(lhs_tiles_fit){
         if(lmem_region == lmem_num_regions - 1) {
           lmem_region = 0;
