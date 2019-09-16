@@ -76,7 +76,7 @@ void FetchInstrGen_RHSLHSTiling_Templated(
   // mems are divided into regions to provide fetch-exec concurrency
   uint8_t lmem_num_regions = (1 << ins_in.nbufs_fetch_exec_log2);
   uint16_t lmem_region_size = (LMEM >> ins_in.nbufs_fetch_exec_log2);
-  const uint8_t lmem_num_regions_new = ins_in.tiles_m;
+  const uint8_t lmem_num_regions_new = (ins_in.tiles_m + 1 ) / 2 + 1;
   const uint16_t lmem_region_size_new = (LMEM / lmem_num_regions_new);
   uint8_t lmem_region = 0;
   uint16_t lmem_region_offset = 0;
@@ -96,6 +96,7 @@ void FetchInstrGen_RHSLHSTiling_Templated(
   if(lhs_tiles_fit){
     lmem_num_regions = lmem_num_regions_new;
     lmem_region_size = lmem_region_size_new;
+    lmem_region_offset = lmem_region_size;
   }
 
   // compute the size of the iteration space
@@ -103,6 +104,7 @@ void FetchInstrGen_RHSLHSTiling_Templated(
   uint16_t n = 0, m = 0;
 
   for(uint16_t i = 0; i < total_iters; i++) {
+    const bool m_is_even = (m + 2) % 2 == 0;
     if(m == 0) {
       // fill RHS buffer
       // each bit position is one block
@@ -146,7 +148,14 @@ void FetchInstrGen_RHSLHSTiling_Templated(
         rmem_region_offset = 0;
       }
     }
-    if(n == 0 || !lhs_tiles_fit){
+    if(n == 0 || !m_is_even || !lhs_tiles_fit){
+      //since index starts from 0 even tiles are beginn
+      if(m_is_even || !lhs_tiles_fit){
+        fetch.bram_addr_base = (ins_in.base_l + lmem_region_offset) << ETF_S;
+      }
+      else{
+        fetch.bram_addr_base = (ins_in.base_l) << ETF_S;
+      }
     // fill LHS buffer
     // each bit position is one block
     fetch.dram_block_count = ins_in.bits_l;
@@ -160,7 +169,7 @@ void FetchInstrGen_RHSLHSTiling_Templated(
     // fetch instruction per bit position...
     // DRAM base address for LHS
     fetch.dram_base = ins_in.dram_lhs + m * ins_in.tiles_k * bytes_per_lhs_tile;
-    fetch.bram_addr_base = (ins_in.base_l + lmem_region_offset) << ETF_S;
+    //fetch.bram_addr_base = (ins_in.base_l + lmem_region_offset) << ETF_S;
     fetch.bram_id_start = first_lhs_id;
     // ID range of BRAM: 0 for LHS, 1 for RHS
     fetch.bram_id_range = 0;
@@ -191,11 +200,20 @@ void FetchInstrGen_RHSLHSTiling_Templated(
       }
     }
     // use the next lmem region for following fetch
-    lmem_region++;
-    lmem_region_offset += lmem_region_size;
-    if(lmem_region == lmem_num_regions) {
-      lmem_region = 0;
-      lmem_region_offset = 0;
+    if(m_is_even){
+      lmem_region++;
+      lmem_region_offset += lmem_region_size;
+    }
+    if(lhs_tiles_fit){
+      if(lmem_region == lmem_num_regions - 1) {
+        lmem_region = 0;
+        lmem_region_offset = lmem_region_size;
+      }
+    }else{
+      if(lmem_region == lmem_num_regions) {
+        lmem_region = 0;
+        lmem_region_offset = 0;
+      }
     }
     // iteration tracking logic: nested loops over tiles
     m++;

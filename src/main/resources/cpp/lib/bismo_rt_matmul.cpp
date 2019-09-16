@@ -83,7 +83,7 @@ MatrixMultiply::MatrixMultiply(
     throw "LHS is too large and not currently supported in runtime library. \n\nA single fetchblock in bytes (D_m * K / 8) is to large to be encoded internaly";
   }
 
-  const bool lhs_all_tiles_fit_in_ocm = (acc->get_lhs_total_BRAM_bytes()) >= m_lhs->bitserial_nbytes();
+  const bool lhs_all_tiles_fit_in_ocm = (acc->get_lhs_total_BRAM_bytes()) >= (((tiles_m + 1) / 2) + 1) * lhs_stripe_nbytes;
   if(!lhs_all_tiles_fit_in_ocm){
     std::cout << "LHS tiles don't fit entirely into On-Chip-Memory. Utilizing slower fetch strategy" << std::endl;
   }

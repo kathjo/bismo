@@ -77,7 +77,7 @@ io_section:{
   // mems are divided into regions to provide fetch-exec concurrency
   uint8_t lmem_num_regions = (1 << ins_in.nbufs_fetch_exec_log2);
   uint16_t lmem_region_size = (LMEM >> ins_in.nbufs_fetch_exec_log2);
-  const uint8_t lmem_num_regions_new = ins_in.tiles_m;
+  const uint8_t lmem_num_regions_new = (ins_in.tiles_m + 1 ) / 2 + 1;
   const uint16_t lmem_region_size_new = (LMEM / lmem_num_regions_new);
   uint8_t lmem_region = 0;
   uint16_t lmem_region_offset = 0;
@@ -91,6 +91,7 @@ io_section:{
   if(lhs_tiles_fit){
     lmem_num_regions = lmem_num_regions_new;
     lmem_region_size = lmem_region_size_new;
+    lmem_region_offset = lmem_region_size;
   }
 
   // single iteration space for the entire instrgen
@@ -104,6 +105,8 @@ io_section:{
     const bool tile_last = (slice == (ins_in.bits_l + ins_in.bits_r - 2));
     const bool rhstile_first = tile_first && (m == 0);
     const bool rhstile_last = tile_last && (m == ins_in.tiles_m-1);
+
+    const bool m_is_even = (m + 2) % 2 == 0;
     if(rhstile_first) {
       // when starting a new tile, wait for fetch stage to signal
       sync.isSendToken = 0;
@@ -135,7 +138,12 @@ io_section:{
     // TODO consider removing mults here, use mod counters
     const uint16_t offset_l = ins_in.tiles_k * l;
     const uint16_t offset_r = ins_in.tiles_k * r;
-    exec.lhsOffset = (ins_in.base_l + lmem_region_offset + offset_l) << ETF_S;
+    if(m_is_even || !lhs_tiles_fit){
+      exec.lhsOffset = (ins_in.base_l + lmem_region_offset + offset_l) << ETF_S;
+    }else{
+      exec.lhsOffset = (ins_in.base_l + offset_l) << ETF_S;
+    }
+
     // note: no buffer regions for RHS tiles
     exec.rhsOffset = (ins_in.base_r + rmem_region_offset + offset_r) << ETF_S;
     exec.numTiles = ins_in.tiles_k;
@@ -170,9 +178,16 @@ io_section:{
       // use the next rmem region for following fetch
       lmem_region++;
       lmem_region_offset += lmem_region_size;
-      if(lmem_region == lmem_num_regions) {
-        lmem_region = 0;
-        lmem_region_offset = 0;
+      if(lhs_tiles_fit){
+        if(lmem_region == lmem_num_regions - 1) {
+          lmem_region = 0;
+          lmem_region_offset = lmem_region_size;
+        }
+      }else{
+        if(lmem_region == lmem_num_regions) {
+          lmem_region = 0;
+          lmem_region_offset = 0;
+        }
       }
     }
     if(rhstile_last) {
