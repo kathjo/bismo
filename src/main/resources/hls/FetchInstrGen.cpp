@@ -74,11 +74,11 @@ void FetchInstrGen_RHSLHSTiling_Templated(
   ap_wait();
 
   // mems are divided into regions to provide fetch-exec concurrency
-  uint8_t lmem_num_regions = (1 << ins_in.nbufs_fetch_exec_log2);
+  uint16_t lmem_num_regions = (1 << ins_in.nbufs_fetch_exec_log2);
   uint16_t lmem_region_size = (LMEM >> ins_in.nbufs_fetch_exec_log2);
   const uint8_t lmem_num_regions_new = ins_in.tiles_m;
   const uint16_t lmem_region_size_new = (LMEM / lmem_num_regions_new);
-  uint8_t lmem_region = 0;
+  uint16_t lmem_region = 0;
   uint16_t lmem_region_offset = 0;
 
   const uint8_t rmem_num_regions = (1 << ins_in.nbufs_fetch_exec_log2);
@@ -91,19 +91,33 @@ void FetchInstrGen_RHSLHSTiling_Templated(
   const int bytes_per_rhs_tile = (N * K) / 8;
   const int bytes_per_lhs_tile = (M * K) / 8;
 
-  const bool lhs_tiles_fit = lmem_region_size_new >= ins_in.tiles_k * ins_in.bits_l;
+  //const bool lhs_tiles_fit = lmem_region_size_new >= ins_in.tiles_k * ins_in.bits_l;
+  uint16_t lhs_fetches = (ins_in.tiles_k * ins_in.bits_l) / lmem_region_size_new;
+  lhs_fetches++;
+  //print lhs_fetches
 
-  if(lhs_tiles_fit){
-    lmem_num_regions = lmem_num_regions_new;
-    lmem_region_size = lmem_region_size_new;
-  }
+  lmem_num_regions = (lmem_num_regions_new + lhs_fetches - 1)/ lhs_fetches;
+  lmem_region_size = lmem_region_size_new * lhs_fetches;
 
+  const uint16_t last_iter_m = ins_in.tiles_m % lmem_num_regions;
+  
+  unsigned int total_iters = 0;
   // compute the size of the iteration space
-  const unsigned int total_iters = ins_in.tiles_m * ins_in.tiles_n;
-  uint16_t n = 0, m = 0;
+  if(last_iter_m != 0){
+    total_iters = lmem_num_regions * ins_in.tiles_n * (lhs_fetches - 1) + last_iter_m * ins_in.tiles_n;
+  }else{
+    total_iters = lmem_num_regions * ins_in.tiles_n * lhs_fetches;
+  }
+  uint16_t n = 0, m = 0, lf = 0;
+
+  /*std::cout << "lhs_fetches " << lhs_fetches << std::endl;
+  std::cout << "lmem_num_regions " << lmem_num_regions << std::endl;
+  std::cout << "lmem_region_size " << lmem_region_size << std::endl;
+  std::cout << "ins_in.tiles_m " << ins_in.tiles_m << std::endl;
+  std::cout << "last_iter_m " << last_iter_m << std::endl;*/
 
   for(uint16_t i = 0; i < total_iters; i++) {
-    if(m == 0) {
+    if(m == lmem_num_regions * lf) {
       // fill RHS buffer
       // each bit position is one block
       fetch.dram_block_count = ins_in.bits_r;
@@ -146,7 +160,7 @@ void FetchInstrGen_RHSLHSTiling_Templated(
         rmem_region_offset = 0;
       }
     }
-    if(n == 0 || !lhs_tiles_fit){
+    if(n == 0){
     // fill LHS buffer
     // each bit position is one block
     fetch.dram_block_count = ins_in.bits_l;
@@ -196,14 +210,25 @@ void FetchInstrGen_RHSLHSTiling_Templated(
     if(lmem_region == lmem_num_regions) {
       lmem_region = 0;
       lmem_region_offset = 0;
+    }else if((lmem_region == last_iter_m) && (lf == (lhs_fetches - 1))){
+      lmem_region = 0;
+      lmem_region_offset = 0;
     }
     // iteration tracking logic: nested loops over tiles
+    //std::cout << "        m " << m << std::endl;
     m++;
-    if(m == ins_in.tiles_m) {
-      m = 0;
+    if(m == lmem_num_regions * (lf+1) || ((m == last_iter_m + lmem_num_regions * lf) && (lf == (lhs_fetches - 1)))){
+      m = lmem_num_regions * lf;
+      //std::cout << "    n " << n << std::endl;
       n++;
       if(n == ins_in.tiles_n) {
         n = 0;
+        //std::cout << "lf " << lf << std::endl;
+        lf++;
+        m = lmem_num_regions * lf;
+        if(lf == lhs_fetches) {
+          lf = 0;
+        }
       }
     }
   }
