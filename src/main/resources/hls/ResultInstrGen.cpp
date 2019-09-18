@@ -132,15 +132,15 @@ io_section_1:{
     ap_wait();
 }
     // iteration tracking logic: nested loops over tiles
-    std::cout << "        m " << m << std::endl;
+    //std::cout << "        m " << m << std::endl;
     m++;
     if(m == lmem_num_regions * (lf+1) || ((m == last_iter_m + lmem_num_regions * lf) && (lf == (lhs_fetches - 1)))){
       m = lmem_num_regions * lf;
-      std::cout << "    n " << n << std::endl;
+      //std::cout << "    n " << n << std::endl;
       n++;
       if(n == ins_in.tiles_n) {
         n = 0;
-        std::cout << "lf " << lf << std::endl;
+        //std::cout << "lf " << lf << std::endl;
         lf++;
         m = lmem_num_regions * lf;
         if(lf == lhs_fetches) {
