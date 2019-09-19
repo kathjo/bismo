@@ -49,6 +49,17 @@ int main(int argc, char const *argv[]) {
       benchmark_gemm_batch();
     } else if(argv[1][0] == 'c') {
       benchmark_gemm_cpuvsaccel();
+    } else if(argv[1][0] == 's') {
+			bool all_OK = true;
+      bismo_rt::init();
+      bismo_rt::HardwareConfig hwcfg = bismo_rt::getHardwareConfig();
+      bismo_rt::deinit();
+			all_OK &= test_specified(hwcfg);
+			if(all_OK) {
+        cout << "All tests passed succesfully" << endl;
+      } else {
+        cout << "Some tests failed!" << endl;
+      }
     } else if(argv[1][0] == 't') {
       bool all_OK = true;
       bismo_rt::init();
