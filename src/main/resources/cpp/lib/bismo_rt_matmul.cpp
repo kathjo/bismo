@@ -85,7 +85,7 @@ MatrixMultiply::MatrixMultiply(
 
   const bool lhs_all_tiles_fit_in_ocm = (acc->get_lhs_total_BRAM_bytes()) >= m_lhs->bitserial_nbytes();
   if(!lhs_all_tiles_fit_in_ocm){
-    std::cout << "LHS tiles don't fit entirely into On-Chip-Memory. Utilizing slower fetch strategy" << std::endl;
+    std::cout << "LHS tiles don't fit entirely into On-Chip-Memory. Doing refetches." << std::endl;
   }
   
   // create and fill in the descriptor

@@ -113,7 +113,7 @@ void ExecInstrGen_RHSLHSTiling(
   lmem_region_size = lmem_region_size_new * lhs_fetches;
 
   const uint16_t last_iter_m = ins_in.tiles_m % lmem_num_regions;
-  
+  int count = 1;
   unsigned int total_iters = 0;
   // compute the size of the iteration space
   if(last_iter_m != 0){
@@ -121,8 +121,11 @@ void ExecInstrGen_RHSLHSTiling(
   }else{
     total_iters = lmem_num_regions * ins_in.tiles_n * lhs_fetches * ins_in.bits_l * ins_in.bits_r;
   }
-  //std::cout << "instr in inner loop " << lmem_num_regions * ins_in.tiles_n * ins_in.bits_l * ins_in.bits_r << std::endl;
-
+  std::cout << "instr in inner loop " << lmem_num_regions * ins_in.tiles_n * ins_in.bits_l * ins_in.bits_r << std::endl;
+	std::cout << "lhs_fetches " << lhs_fetches << std::endl;
+	std::cout << "num of sync instr " <<  lhs_fetches * ins_in.tiles_n * ( 2 + lmem_num_regions * 4) << std::endl;
+	std::cout << "num of instr " <<  (lhs_fetches - 1) * ins_in.tiles_n * ( 2 + lmem_num_regions * ( 4 + ins_in.bits_l * ins_in.bits_r)) + ins_in.tiles_n * ( 2 + last_iter_m * ( 4 + ins_in.bits_l * ins_in.bits_r)) << std::endl;
+	std::cout << "last_iter_m " << last_iter_m << std::endl;
   // single iteration space for the entire instrgen
   for(unsigned int i = 0; i < total_iters; i++) {
     #pragma HLS PIPELINE II=1
@@ -133,7 +136,7 @@ void ExecInstrGen_RHSLHSTiling(
     const bool tile_first = (slice == 0);
     const bool tile_last = (slice == (ins_in.bits_l + ins_in.bits_r - 2));
     const bool rhstile_first = tile_first && (m == lmem_num_regions * lf);
-    const bool rhstile_last = tile_last && (m == (lmem_num_regions * (lf + 1))-1);
+    const bool rhstile_last = tile_last && ((m == (lmem_num_regions * (lf + 1))-1) || ((m == (last_iter_m - 1 + lmem_num_regions * lf)) && (lf == (lhs_fetches - 1))));
     
     // whether the current bit position is negative for
     // the input matrices
@@ -162,23 +165,29 @@ io_section_1:{
     if(rhstile_first) {
       // when starting a new tile, wait for fetch stage to signal
       out.write(sync_rec_fetch.asRaw());
+      std::cout << "rhstile_first " << count << std::endl;
+      count++;
       ap_wait();
     }
     if(tile_first) {
       // when starting a new tile, wait for fetch stage to signal
       out.write(sync_rec_fetch.asRaw());
+      count++;
       ap_wait();
       // starting a new result tile:
       // acquire a result buffer
       out.write(sync_rec_res.asRaw());
+      count++;
       ap_wait();
     }
     out.write(exec.asRaw());
+    count++;
     ap_wait();
     if(tile_last) {
       // finished computing result tile
       // release the result buffer
       out.write(sync_send_res.asRaw());
+      count++;
       ap_wait();
       // iteration tracking logic: result buffer offset
       offset_res++;
@@ -188,6 +197,7 @@ io_section_1:{
       // when finishing with rhs tile, signal fetch stage to release buffer
       // release the input buffers
       out.write(sync_send_fetch.asRaw());
+      count++;
       ap_wait();
       // use the next rmem region for following fetch
       lmem_region++;
@@ -204,6 +214,8 @@ io_section_1:{
       // release buffer to fetch stage
       out.write(sync_send_fetch.asRaw());
       ap_wait();
+      std::cout << "rhstile_last " << count << std::endl;
+      count++;
       // use the next rmem region for following execution
       rmem_region++;
       rmem_region_offset += rmem_region_size;
