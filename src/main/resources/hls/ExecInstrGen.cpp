@@ -121,6 +121,7 @@ void ExecInstrGen_RHSLHSTiling(
   }else{
     total_iters = lmem_num_regions * ins_in.tiles_n * lhs_fetches * ins_in.bits_l * ins_in.bits_r;
   }
+  //std::cout << "instr in inner loop " << lmem_num_regions * ins_in.tiles_n * ins_in.bits_l * ins_in.bits_r << std::endl;
 
   // single iteration space for the entire instrgen
   for(unsigned int i = 0; i < total_iters; i++) {
@@ -132,7 +133,7 @@ void ExecInstrGen_RHSLHSTiling(
     const bool tile_first = (slice == 0);
     const bool tile_last = (slice == (ins_in.bits_l + ins_in.bits_r - 2));
     const bool rhstile_first = tile_first && (m == lmem_num_regions * lf);
-    const bool rhstile_last = tile_last && (m == ins_in.tiles_m-1);
+    const bool rhstile_last = tile_last && (m == (lmem_num_regions * (lf + 1))-1);
     
     // whether the current bit position is negative for
     // the input matrices
