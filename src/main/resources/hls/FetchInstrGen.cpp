@@ -93,7 +93,9 @@ void FetchInstrGen_RHSLHSTiling_Templated(
 
   //const bool lhs_tiles_fit = lmem_region_size_new >= ins_in.tiles_k * ins_in.bits_l;
   uint16_t lhs_fetches = (ins_in.tiles_k * ins_in.bits_l) / lmem_region_size_new;
-  lhs_fetches++;
+  if((ins_in.tiles_k * ins_in.bits_l) % lmem_region_size_new != 0){
+  	lhs_fetches++;
+  }
   //print lhs_fetches
 
   lmem_num_regions = (lmem_num_regions_new + lhs_fetches - 1)/ lhs_fetches;
