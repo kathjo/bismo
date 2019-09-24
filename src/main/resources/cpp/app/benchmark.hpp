@@ -30,9 +30,12 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
+#include <string>
 using namespace std;
 #include "gemmbitserial/test/testhelpers.hpp"
 #include "bismo_rt.hpp"
+#include <math.h>
+#include <fstream>
 
 const char * delimiter = ", ";
 
@@ -110,20 +113,9 @@ void benchmark_gemm_interactive() {
   }
 }
 
-void benchmark_gemm_cpuvsaccel() {
-  cout << "IMPORTANT: Remember to uncomment the following lines in bismo_rt_options.hpp: " << endl;
-  cout << "#define BISMORT_MATMUL_VERIFY_AGAINST_CPU" << endl;
-  cout << "#define BISMORT_BENCHMARK_GEMMLOWP" << endl;
-  cout << "The CPU comparative benchmark will not work until then." << endl;
-  bool headers_printed = false;
-  while(1) {
-    int rows, depth, cols, lhsbits, rhsbits;
-    cin >> rows;
-    if(rows == 0) {
-      return;
-    }
-    cin >> depth >> cols;
-    cin >> lhsbits >> rhsbits;
+bismo_rt::InstrumentationData benchmark_vs_cpu(
+  size_t rows, size_t cols, size_t depth, size_t lhsbits, size_t rhsbits
+) {
     bismo_rt::InstrumentationData ret = run_benchmark_matmul(rows, cols, depth, lhsbits, rhsbits);
     // bismo has quite a few components
     float total_bismo = ret["run_cycles"];
@@ -134,16 +126,19 @@ void benchmark_gemm_cpuvsaccel() {
     total_bismo += ret["mat_rhs_pad_us"];
     total_bismo += ret["mat_res_unpad_us"];
     // add p2s costs
-    total_bismo += ret["mat_lhs_p2s_us"];
+    // total_bismo += ret["mat_lhs_p2s_us"];
     total_bismo += ret["mat_rhs_p2s_us"];
     // add data movement costs
     total_bismo += ret["mat_lhs_host2accel_us"];
     total_bismo += ret["mat_res_accel2host_us"];
     total_bismo += ret["mat_rhs_host2accel_us"];
-    // gemmbitserial has three components
-    float total_gemmbitserial = ret["cpu_gemmbitserial_exec_us"];
-    total_gemmbitserial += ret["cpu_gemmbitserial_lhs_p2s_us"];
-    total_gemmbitserial += ret["cpu_gemmbitserial_rhs_p2s_us"];
+    //calculating runs vs run+wait in percent
+    float fetch_utilize = ret["stg_fetch_run"];
+    fetch_utilize = (fetch_utilize / (fetch_utilize + ret["stg_fetch_rcv"]))*100;
+    float exec_utilize = ret["stg_exec_run"];
+    exec_utilize = (exec_utilize / (exec_utilize + ret["stg_exec_rcv"]))*100;
+    float result_utilize = ret["stg_result_run"];
+    result_utilize = (result_utilize / (result_utilize + ret["stg_result_rcv"]))*100;
     // gemmlowp only has a single component
     float total_gemmlowp = ret["cpu_gemmlowp_exec_us"];
 
@@ -153,14 +148,44 @@ void benchmark_gemm_cpuvsaccel() {
     new_ret["3_cols_N"] = cols;
     new_ret["4_lhsbits"] = lhsbits;
     new_ret["5_rhsbits"] = rhsbits;
+    new_ret["fetch_utilize"] = fetch_utilize;
+    new_ret["exec_utilize"] = exec_utilize;
+    new_ret["result_utilize"] = result_utilize;
     new_ret["6_total_bismo_us"] = total_bismo;
-    new_ret["7_total_gemmbitserial_us"] = total_gemmbitserial;
     new_ret["8_total_gemmlowp_us"] = total_gemmlowp;
-    if(!headers_printed) {
-      printInstrumentationHeaders(new_ret);
-      headers_printed = true;
-    }
-    printInstrumentationData(new_ret);
+    
+    return new_ret;
+  }
+
+void benchmark_gemm_cpuvsaccel(string & input) {
+  cout << "IMPORTANT: Remember to uncomment the following lines in bismo_rt_options.hpp: " << endl;
+  cout << "#define BISMORT_MATMUL_VERIFY_AGAINST_CPU" << endl;
+  cout << "#define BISMORT_BENCHMARK_GEMMLOWP" << endl;
+  cout << "The CPU comparative benchmark will not work until then." << endl;
+  bool headers_printed = false;
+  cout << "reading wl from file " << input << endl;	
+  while(1) {
+    int rows, depth, cols, lhsbits, rhsbits;
+    for(int bits = 2; bits <= 4; bits+=2){
+    	for(int log_batch = 0; log_batch <= 9; log_batch++){
+    		int batch = pow(2 ,log_batch);
+  			std::ifstream infile(input);
+  			//vector<bismo_rt::InstrumentationData> ret_vector;
+  			int bismo_sum = 0, gemmlowp_sum = 0;
+  			while(infile >> rows >> depth >> cols >> depth){
+  				depth = depth * batch;
+					bismo_rt::InstrumentationData ret = run_benchmark_matmul(rows, cols, depth, bits, bits);
+					printInstrumentationData(ret);
+					bismo_sum += ret["6_total_bismo_us"];
+					gemmlowp_sum += ret["8_total_gemmlowp_us"];
+				}
+				//vector<bismo_rt::InstrumentationData>::iterator ptr;
+				//for(ptr = ret_vector.begin(); ptr < ret_vector.end(); ptr++){
+					//printInstrumentationData(*ptr);
+				//}
+				cout << bits << delimiter << batch << delimiter << bismo_sum << delimiter << gemmlowp_sum << endl;
+			}
+  	}
   }
 }
 
