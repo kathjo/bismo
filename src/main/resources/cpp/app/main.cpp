@@ -32,10 +32,11 @@
 
 #include "BISMOTests.hpp"
 #include "benchmark.hpp"
+#include <string>
 
 int main(int argc, char const *argv[]) {
   try {
-    if(argc != 2) {
+    if(argc != 2 && argc !=3 ) {
       cout << "Run with cmdline argument: " << endl;
       cout << "t to run tests" << endl;
       cout << "i to run interactive benchmarking" << endl;
@@ -48,7 +49,8 @@ int main(int argc, char const *argv[]) {
     } else if(argv[1][0] == 'b') {
       benchmark_gemm_batch();
     } else if(argv[1][0] == 'c') {
-      benchmark_gemm_cpuvsaccel();
+    	string path = argv[2];
+      benchmark_gemm_cpuvsaccel( path);
     } else if(argv[1][0] == 't') {
       bool all_OK = true;
       bismo_rt::init();
