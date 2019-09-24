@@ -51,6 +51,7 @@ sw: $(BUILD_DIR_HWDRV)/$(HW_SW_DRIVER)
 	mkdir -p $(BUILD_DIR_DEPLOY)/hls_include; \
 	cp -rf $(BUILD_DIR_HWDRV)/* $(BUILD_DIR_DEPLOY)/driver/; \
 	cp -rf $(APP_SRC_DIR)/* $(BUILD_DIR_DEPLOY)/test/;
+	cp -rf $(HLS_SRC_DIR)/* $(BUILD_DIR_DEPLOY)/rtlib; \
 	cp -rf $(RTLIB_SRC_DIR)/* $(BUILD_DIR_DEPLOY)/rtlib; \
 	cp -rf $(HLS_SIM_INCL)/* $(BUILD_DIR_DEPLOY)/hls_include;
 

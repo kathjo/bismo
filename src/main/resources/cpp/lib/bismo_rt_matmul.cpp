@@ -31,6 +31,8 @@
 
 #include "bismo_rt_matmul.hpp"
 #include <iostream>
+#include <hls_stream.h>
+#include "BISMOInstruction.hpp"
 
 namespace bismo_rt {
 MatrixMultiply::MatrixMultiply(
@@ -119,11 +121,41 @@ gemmbitserial::GEMMContext MatrixMultiply::getCPUContext() {
   }
 }
 
+
+
 void MatrixMultiply::exec() {
   acc->set_stage_enables(0, 0, 0);
-  acc->useDescriptors();
+  //acc->useDescriptors();
   // feed the instrgen descriptor
-  acc->pushSingleMMDescriptor(m_igen_dsc);
+  acc->useDirectInstructionFeed();
+  //acc->pushSingleMMDescriptor(m_igen_dsc);
+  
+  hls::stream<ap_uint<BISMO_MMDESCR_BITS>> in;
+  hls::stream<ap_uint<BISMO_INSTR_BITS>> out_fetch, out_exec, out_result;
+  std::cout << "write descr to in" << std::endl;
+  //BISMOInstruction ins_fetch, ins_exec, ins_result;
+  in.write(m_igen_dsc.asRaw());
+  std::cout << "Declare fetch instr gen" << std::endl;
+  FetchInstrGen(in, out_fetch);
+  in.write(m_igen_dsc.asRaw());
+  std::cout << "Declare exec instr gen" << std::endl;
+  ExecInstrGen(in, out_exec);
+  std::cout << "exec instr len" << out_exec.size() << std::endl;
+  in.write(m_igen_dsc.asRaw());
+  std::cout << "Declare res instr gen" << std::endl;
+  ResultInstrGen(in, out_result);
+  if(!out_fetch.empty() && acc->fetch_opcount() < 510){
+			std::cout << "push first fetch instr" << std::endl;
+			acc->pushInstruction(out_fetch.read());
+		}
+		if(!out_exec.empty() && acc->exec_opcount() < 510){
+			std::cout << "push first exec instr" << std::endl;
+			acc->pushInstruction(out_exec.read());
+		}
+		if(!out_result.empty() && acc->res_opcount() < 510){
+			std::cout << "push first res instr" << std::endl;
+			acc->pushInstruction(out_result.read());
+		}
   // HACK: make sure at least one op has appeared before checking for completion
   // proper way to fix this is to singal completion from accel explicitly
   while(acc->res_opcount() == 0) {};
@@ -131,8 +163,31 @@ void MatrixMultiply::exec() {
   acc->perf_set_cc_enable(1);
   // enable all stages
   acc->set_stage_enables(1, 1, 1);
+  std::cout << "start pushing instructions" << std::endl;
+  int count = 1;
+  while(!out_fetch.empty() || !out_exec.empty() || !out_result.empty()){
+		if(!out_fetch.empty() && acc->fetch_opcount() < 510){
+			std::cout << "push fetch instr " << count << std::endl;
+			acc->pushInstruction(out_fetch.read());
+		}
+		if(!out_exec.empty() && acc->exec_opcount() < 510){
+			std::cout << "push exec instr " << count << std::endl;
+			acc->pushInstruction(out_exec.read());
+			count++;
+		}
+		if(!out_result.empty() && acc->res_opcount() < 510){
+			std::cout << "push res instr " << count << std::endl;
+			acc->pushInstruction(out_result.read());
+		}
+		
+		std::cout << "fetch, exec, res opcounts: " << acc->fetch_opcount() << ", " << acc->exec_opcount() << ", "<< acc->res_opcount() << std::endl;
+    acc->printTokenCounts();
+  }
   // wait until all writes are completed
-  while(acc->res_opcount() != 0) {};
+  while(acc->res_opcount() != 0) {
+  	std::cout << "fetch, exec, res opcounts: " << acc->fetch_opcount() << ", " << acc->exec_opcount() << ", "<< acc->res_opcount() << std::endl;
+    acc->printTokenCounts();
+  };
   // stop the cycle counter
   acc->perf_set_cc_enable(0);
   acc->set_stage_enables(0, 0, 0);
