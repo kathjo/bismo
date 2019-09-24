@@ -55,6 +55,15 @@ void printInstrumentationData(bismo_rt::InstrumentationData & data) {
   cout << endl;
 }
 
+void printInstrumentationDataToFile(bismo_rt::InstrumentationData & data, std::ofstream & file) {
+  bismo_rt::InstrumentationData::iterator it;
+  for(it = data.begin(); it != data.end(); it++) {
+    file << it->second << delimiter;
+  }
+  file << endl;
+}
+
+
 bismo_rt::InstrumentationData run_benchmark_matmul(
   size_t nrows_lhs, size_t nrows_rhs, size_t ncols, size_t nbits_lhs,
   size_t nbits_rhs
@@ -148,11 +157,11 @@ bismo_rt::InstrumentationData benchmark_vs_cpu(
     new_ret["3_cols_N"] = cols;
     new_ret["4_lhsbits"] = lhsbits;
     new_ret["5_rhsbits"] = rhsbits;
-    new_ret["fetch_utilize"] = fetch_utilize;
-    new_ret["exec_utilize"] = exec_utilize;
-    new_ret["result_utilize"] = result_utilize;
-    new_ret["6_total_bismo_us"] = total_bismo;
-    new_ret["8_total_gemmlowp_us"] = total_gemmlowp;
+    new_ret["6_fetch_utilize"] = fetch_utilize;
+    new_ret["7_exec_utilize"] = exec_utilize;
+    new_ret["8_result_utilize"] = result_utilize;
+    new_ret["91_total_bismo_us"] = total_bismo;
+    new_ret["92_total_gemmlowp_us"] = total_gemmlowp;
     
     return new_ret;
   }
@@ -163,8 +172,19 @@ void benchmark_gemm_cpuvsaccel(string & input) {
   cout << "#define BISMORT_BENCHMARK_GEMMLOWP" << endl;
   cout << "The CPU comparative benchmark will not work until then." << endl;
   bool headers_printed = false;
-  cout << "reading wl from file " << input << endl;	
-  while(1) {
+  cout << "reading wl from file " << input << endl;
+  string layer_file;
+  layer_file.append(input);
+  layer_file.append("_layers.csv");
+  string sum_file;
+  sum_file.append(input);
+  sum_file.append("_sum.csv");	
+  std::ofstream layer_out (layer_file);
+  std::ofstream sum_out (sum_file);
+  layer_out << "rows" << delimiter << "depth" << delimiter << "cols" << delimiter << "lhsbits" << delimiter << "rhsbits" << delimiter;
+  layer_out << "fetch_utilize[%]" << delimiter << "exec_utilize[%]" << delimiter << "result_utilize[%]" << delimiter  << "total_bismo[um]" << delimiter << "total_gemmlowp[um]" << endl;
+  sum_out << "bits" << delimiter << "batch" << delimiter << "bismo[um]" << delimiter << "gemmlowp[um]" << endl;
+  cout << "bits" << delimiter << "batch" << delimiter << "bismo[um]" << delimiter << "gemmlowp[um]" << endl;
     int rows, depth, cols, lhsbits, rhsbits;
     for(int bits = 2; bits <= 4; bits+=2){
     	for(int log_batch = 0; log_batch <= 9; log_batch++){
@@ -172,21 +192,24 @@ void benchmark_gemm_cpuvsaccel(string & input) {
   			std::ifstream infile(input);
   			//vector<bismo_rt::InstrumentationData> ret_vector;
   			int bismo_sum = 0, gemmlowp_sum = 0;
-  			while(infile >> rows >> depth >> cols >> depth){
-  				depth = depth * batch;
-					bismo_rt::InstrumentationData ret = run_benchmark_matmul(rows, cols, depth, bits, bits);
-					printInstrumentationData(ret);
-					bismo_sum += ret["6_total_bismo_us"];
-					gemmlowp_sum += ret["8_total_gemmlowp_us"];
+  			while(infile >> rows >> depth >> cols){
+  					cols= cols * batch;
+					bismo_rt::InstrumentationData ret = benchmark_vs_cpu(rows, cols, depth, bits, bits);
+					//printInstrumentationHeaders(ret);
+					printInstrumentationDataToFile(ret, layer_out);
+					bismo_sum += ret["91_total_bismo_us"];
+					gemmlowp_sum += ret["92_total_gemmlowp_us"];
 				}
 				//vector<bismo_rt::InstrumentationData>::iterator ptr;
 				//for(ptr = ret_vector.begin(); ptr < ret_vector.end(); ptr++){
 					//printInstrumentationData(*ptr);
 				//}
+				sum_out << bits << delimiter << batch << delimiter << bismo_sum << delimiter << gemmlowp_sum << endl;
 				cout << bits << delimiter << batch << delimiter << bismo_sum << delimiter << gemmlowp_sum << endl;
 			}
   	}
-  }
+  layer_out.close();
+  sum_out.close();  
 }
 
 void benchmark_gemm_batch() {
