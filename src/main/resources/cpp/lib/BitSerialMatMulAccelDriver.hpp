@@ -47,7 +47,7 @@
 
 #define CMDFIFO_CAP               16
 #define FETCHEXEC_TOKENS_LOG2     2
-#define FETCHEXEC_TOKENS          8
+#define FETCHEXEC_TOKENS          34
 //(1 << FETCHEXEC_TOKENS_LOG2)
 #define EXECRES_TOKENS            2
 #define N_CTRL_STATES             4

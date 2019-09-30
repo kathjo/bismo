@@ -274,10 +274,10 @@ class BitSerialMatMulAccel(
   }}
 
   // instantiate synchronization token FIFOs
-  val syncFetchExec_free = Module(new FPGAQueue(Bool(), 8)).io
-  val syncFetchExec_filled = Module(new FPGAQueue(Bool(), 8)).io
-  val syncExecResult_free = Module(new FPGAQueue(Bool(), 8)).io
-  val syncExecResult_filled = Module(new FPGAQueue(Bool(), 8)).io
+  val syncFetchExec_free = Module(new FPGAQueue(Bool(), 64)).io
+  val syncFetchExec_filled = Module(new FPGAQueue(Bool(), 64)).io
+  val syncExecResult_free = Module(new FPGAQueue(Bool(), 64)).io
+  val syncExecResult_filled = Module(new FPGAQueue(Bool(), 64)).io
 
   io.tc_fe := syncFetchExec_filled.count
   io.tc_ef := syncFetchExec_free.count
