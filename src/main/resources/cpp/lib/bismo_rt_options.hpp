@@ -41,7 +41,7 @@
 // enable to benchmark against a gemmlowp implementation with each matmul call
 // this produces additional instrumentation data:
 // cpu_gemmlowp_exec
-//#define BISMORT_BENCHMARK_GEMMLOWP
+#define BISMORT_BENCHMARK_GEMMLOWP
 // number of bytes for the p2s bit-parallel buffer on the accelerator side
 #define BISMORT_P2S_BITPAR_BYTES  (1024*1024)
 //#define BISMORT_USE_SW_P2S
