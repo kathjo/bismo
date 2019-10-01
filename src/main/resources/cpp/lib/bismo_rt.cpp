@@ -46,7 +46,7 @@ void init() {
   acc->reset();
   // currently the runtime is implemented with direct instruction feed
   // will switch to descriptors when the correct generators are impl'd
-  acc->init_resource_pools();
+  //acc->init_resource_pools();
   acc->useDirectInstructionFeed();
   cfg = acc->hwcfg();
   // allocate shared buffer for p2s

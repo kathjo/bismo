@@ -47,7 +47,7 @@
 
 #define CMDFIFO_CAP               16
 #define FETCHEXEC_TOKENS_LOG2     2
-#define FETCHEXEC_TOKENS          34
+//#define FETCHEXEC_TOKENS          34
 //(1 << FETCHEXEC_TOKENS_LOG2)
 #define EXECRES_TOKENS            2
 #define N_CTRL_STATES             4
@@ -397,12 +397,12 @@ public:
 
   // initialize the tokens in FIFOs representing shared resources
   // this also serves as a sanity check for basic functionality in the hardware
-  void init_resource_pools() {
+  void init_resource_pools(uint16_t fetch_execute_tokens) {
     set_stage_enables(0, 0, 0);
-    for(int i = 0; i < FETCHEXEC_TOKENS; i++) {
+    for(int i = 0; i < fetch_execute_tokens; i++) {
       add_token_fetchexec_free();
     }
-    while(m_accel->get_tc_ef() != FETCHEXEC_TOKENS);
+    while(m_accel->get_tc_ef() != fetch_execute_tokens);
 
     for(int i = 0; i < EXECRES_TOKENS; i++) {
       add_token_execresult_free();

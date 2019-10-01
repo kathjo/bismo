@@ -60,10 +60,18 @@ MatrixMultiply::MatrixMultiply(
   const size_t tiles_n = m_rhs->outer_a() / cfg.dpaDimRHS;
   const size_t lhs_stripe_nbytes = m_lhs->bitserial_nbytes() / tiles_m;
   const size_t rhs_stripe_nbytes = m_rhs->bitserial_nbytes() / tiles_n;
-
+  
+  const uint16_t lmem_region_size = (cfg.lhsEntriesPerMem / tiles_m);
+  uint16_t lhs_fetches = (tiles_k * m_lhs->bits()) / lmem_region_size;
+  if((tiles_k * m_lhs->bits()) % lmem_region_size != 0){
+  	lhs_fetches++;
+  }
+  const uint16_t lmem_num_regions = (tiles_m + lhs_fetches - 1)/ lhs_fetches;
+  std::cout << "lmem_num_regions: "<< lmem_num_regions << std::endl;
+  fetch_exec_tokens = lmem_num_regions + 2;
   // must have room for at least one stripe per bit position, as this is the
   // granularity at which we do RHS tiling
-  const bool rhs_tile_fits_in_ocm = (acc->get_rhs_total_BRAM_bytes()) >= FETCHEXEC_TOKENS*rhs_stripe_nbytes;
+  const bool rhs_tile_fits_in_ocm = (acc->get_rhs_total_BRAM_bytes()) >= (1 << FETCHEXEC_TOKENS_LOG2)*rhs_stripe_nbytes;
   // must be able to encode a fetchblock in the space defined by a fetch instruction
   // there is a separate fetchblock for every bit-position
   const bool rhs_tile_is_one_fetchblock = (rhs_stripe_nbytes / m_rhs->bits())<= FETCH_BLOCK_MAX;
@@ -74,7 +82,7 @@ MatrixMultiply::MatrixMultiply(
     throw "RHS is too large and not currently supported in runtime library. \n\nA single fetchblock in bytes (D_n * K / 8) is to large to be encoded internaly";
   }
 
-  const bool lhs_tile_fits_in_ocm = (acc->get_lhs_total_BRAM_bytes()) >= FETCHEXEC_TOKENS*lhs_stripe_nbytes;
+  const bool lhs_tile_fits_in_ocm = (acc->get_lhs_total_BRAM_bytes()) >= (1 << FETCHEXEC_TOKENS_LOG2)*lhs_stripe_nbytes;
   const bool lhs_tile_is_one_fetchblock = (lhs_stripe_nbytes / m_lhs->bits()) <= FETCH_BLOCK_MAX;
   if(!lhs_tile_fits_in_ocm) {
     throw "LHS is too large and not currently supported in runtime library. \n\nA single LHS stripe (D_m * K * lhs-bits) does not fit into On-Chip-Memory";
@@ -87,6 +95,7 @@ MatrixMultiply::MatrixMultiply(
   if(!lhs_all_tiles_fit_in_ocm){
     std::cout << "LHS tiles don't fit entirely into On-Chip-Memory. Doing refetches." << std::endl;
   }
+    
   
   // create and fill in the descriptor
   m_igen_dsc.tiles_m = tiles_m;
@@ -126,6 +135,7 @@ gemmbitserial::GEMMContext MatrixMultiply::getCPUContext() {
 
 void MatrixMultiply::exec() {
   acc->set_stage_enables(0, 0, 0);
+  acc->init_resource_pools(fetch_exec_tokens);
   acc->useDescriptors();
   // feed the instrgen descriptor
   acc->pushSingleMMDescriptor(m_igen_dsc);

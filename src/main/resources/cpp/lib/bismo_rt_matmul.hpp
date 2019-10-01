@@ -87,6 +87,7 @@ protected:
   SingleMMDescriptor m_igen_dsc;
   gemmbitserial::GEMMContext m_cpu_ctx;
   bool m_allow_gemmbitserial;
+  uint16_t fetch_exec_tokens;
 };
 
 }
