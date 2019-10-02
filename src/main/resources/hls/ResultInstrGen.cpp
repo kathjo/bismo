@@ -67,7 +67,7 @@ void ResultInstrGen_RHSTiling_Templated(
   ins_in.fromRaw(in.read());
   ap_wait();
 
-  const uint8_t lmem_num_regions_new = ins_in.tiles_m;
+  const uint16_t lmem_num_regions_new = ins_in.tiles_m;
   const uint16_t lmem_region_size_new = (LMEM / lmem_num_regions_new);
   uint16_t lmem_region = 0;
   uint16_t lmem_region_offset = 0;

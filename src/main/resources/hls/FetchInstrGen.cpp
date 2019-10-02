@@ -76,7 +76,7 @@ void FetchInstrGen_RHSLHSTiling_Templated(
   // mems are divided into regions to provide fetch-exec concurrency
   uint16_t lmem_num_regions = (1 << ins_in.nbufs_fetch_exec_log2);
   uint16_t lmem_region_size = (LMEM >> ins_in.nbufs_fetch_exec_log2);
-  const uint8_t lmem_num_regions_new = ins_in.tiles_m;
+  const uint16_t lmem_num_regions_new = ins_in.tiles_m;
   const uint16_t lmem_region_size_new = (LMEM / lmem_num_regions_new);
   uint16_t lmem_region = 0;
   uint16_t lmem_region_offset = 0;
