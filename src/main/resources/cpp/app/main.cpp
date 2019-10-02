@@ -42,6 +42,7 @@ int main(int argc, char const *argv[]) {
       cout << "i to run interactive benchmarking" << endl;
       cout << "b to run batch-mode benchmarking" << endl;
       cout << "c to run CPU vs accel benchmarking" << endl;
+      cout << "m to run CPU vs accel benchmarking with automatic workload traversal" << endl;
       return -1;
     }
     if(argv[1][0] == 'i') {
@@ -51,6 +52,8 @@ int main(int argc, char const *argv[]) {
     } else if(argv[1][0] == 'c') {
     	string path = argv[2];
       benchmark_gemm_cpuvsaccel( path);
+    } else if(argv[1][0] == 'm') {
+      benchmark_gemm_cpuvsaccel_traverse();
     } else if(argv[1][0] == 't') {
       bool all_OK = true;
       bismo_rt::init();
