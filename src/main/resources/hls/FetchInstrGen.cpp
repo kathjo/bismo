@@ -118,7 +118,7 @@ void FetchInstrGen_RHSLHSTiling_Templated(
   std::cout << "ins_in.tiles_m " << ins_in.tiles_m << std::endl;
   std::cout << "last_iter_m " << last_iter_m << std::endl;*/
 
-  for(uint16_t i = 0; i < total_iters; i++) {
+  for(unsigned int i = 0; i < total_iters; i++) {
     if(m == lmem_num_regions * lf) {
       // fill RHS buffer
       // each bit position is one block
