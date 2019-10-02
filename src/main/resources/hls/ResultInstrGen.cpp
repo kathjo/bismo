@@ -67,22 +67,19 @@ void ResultInstrGen_RHSTiling_Templated(
   ins_in.fromRaw(in.read());
   ap_wait();
 
-  const uint16_t lmem_num_regions_new = ins_in.tiles_m;
-  const uint16_t lmem_region_size_new = (LMEM / lmem_num_regions_new);
+  //variables for iterating over memory and computing bram addresses
   uint16_t lmem_region = 0;
   uint16_t lmem_region_offset = 0;
-
-  //const bool lhs_tiles_fit = lmem_region_size_new >= ins_in.tiles_k * ins_in.bits_l;
-  uint16_t lhs_fetches = (ins_in.tiles_k * ins_in.bits_l) / lmem_region_size_new;
-  if((ins_in.tiles_k * ins_in.bits_l) % lmem_region_size_new != 0){
+  //how many tiles fit into one bram
+  const uint16_t lmem_num_regions = LMEM/(ins_in.tiles_k * ins_in.bits_l);
+  const uint16_t lmem_region_size = (ins_in.tiles_k * ins_in.bits_l);
+  //into how many fetch sections do we need to separate workload to fetch all tiles_m
+  uint16_t lhs_fetches = ins_in.tiles_m / lmem_num_regions;
+  if(ins_in.tiles_m % lmem_num_regions != 0){
   	lhs_fetches++;
   }
-
-  uint16_t lmem_num_regions = (lmem_num_regions_new + lhs_fetches - 1)/ lhs_fetches;
-  uint16_t lmem_region_size = lmem_region_size_new * lhs_fetches;
-
+  //if tiles_m is not evenly divisible by number of fetch sections, last fetch section is smaller than previous ones
   const uint16_t last_iter_m = ins_in.tiles_m % lmem_num_regions;
-  
   unsigned int total_iters = 0;
   // compute the size of the iteration space
   if(last_iter_m != 0){
