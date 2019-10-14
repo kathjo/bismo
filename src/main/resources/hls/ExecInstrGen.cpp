@@ -97,7 +97,8 @@ void ExecInstrGen_RHSLHSTiling(
   const uint16_t rmem_region_size = (RMEM >> ins_in.nbufs_fetch_exec_log2);
   uint8_t rmem_region = 0;
   uint16_t rmem_region_offset = 0;
-  
+  //these variables are generated in the other instruction generators concurrently, instead of being computed by the run-time application to avoid changing the interfaces
+  //see FetchInstrGen for more details
   //variables for iterating over memory and computing bram addresses
   uint16_t lmem_region = 0;
   uint16_t lmem_region_offset = 0;
@@ -109,7 +110,7 @@ void ExecInstrGen_RHSLHSTiling(
   if(ins_in.tiles_m % lmem_num_regions != 0){
   	lhs_fetches++;
   }
-  //if tiles_m is not evenly divisible by number of fetch sections, last fetch section is smaller than previous ones
+  //if tiles_m is not evenly divisible by number of fetch sections, the last fetch section contains the remainder of tiles to be fetched
   const uint16_t last_iter_m = ins_in.tiles_m % lmem_num_regions;
   unsigned int total_iters = 0;
   // compute the size of the iteration space

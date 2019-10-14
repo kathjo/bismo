@@ -168,17 +168,24 @@ size_t MatrixMultiply::resBytes() const {
 }
 
 size_t MatrixMultiply::getNumBytesToFetch() const {
-  // note that the number of bytes to fetch depends on the tiling strategy
-  // our current tiling strategy looks like this:
-  // (see FetchInstrGen.cpp for HLS implementation)
-  // foreach n in n_tiles:
-  //    load slice n into on-chip memory
-  //    foreach m in m_tiles:
-  //      load slice m into on-chip memory
-  //      process the loaded slices
+  // 	note that the number of bytes to fetch depends on the tiling strategy
+  //	our current tiling strategy looks like this:
+  //	(see FetchInstrGen.cpp for HLS implementation)
+  // 	separate m_tiles into l fetch-sections, each of which fit entirely into on-chip memory
+  // 	foreach l in fetch-sections:
+  // 		foreach n in n_tiles:
+  //  	  load slice n into on-chip memory
+  //  	  foreach m in m_tiles:
+  //				if m not fetched yet (n == 0):
+  //      		load slice m into on-chip memory
+  //      	process the loaded slices
   // m is slices of the LHS matrix and n is slices of the RHS matrix
   // thus, RHS gets loaded only once, but LHS is loaded multiple (n_tiles) times
-  return rhsBytes() + (lhsBytes() * m_igen_dsc.tiles_n);
+  unsigned int fetch_sections = lhsBytes()/getHWBufSizeLHS();
+  if(lhsBytes()%getHWBufSizeLHS() != 0){
+  	fetch_sections++;
+  }
+  return rhsBytes()*fetch_sections + lhsBytes();
 }
 
 size_t MatrixMultiply::getNumBytesToWrite() const {

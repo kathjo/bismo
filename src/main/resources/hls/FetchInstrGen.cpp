@@ -73,7 +73,7 @@ void FetchInstrGen_RHSLHSTiling_Templated(
   ins_in.fromRaw(in.read());
   ap_wait();
 
-  // mems are divided into regions to provide fetch-exec concurrency
+  // right hand side memory is divided into regions to provide fetch-exec concurrency
   const uint8_t rmem_num_regions = (1 << ins_in.nbufs_fetch_exec_log2);
   const uint16_t rmem_region_size = (RMEM >> ins_in.nbufs_fetch_exec_log2);
   uint8_t rmem_region = 0;
@@ -91,11 +91,12 @@ void FetchInstrGen_RHSLHSTiling_Templated(
   const uint16_t lmem_num_regions = LMEM/(ins_in.tiles_k * ins_in.bits_l);
   const uint16_t lmem_region_size = (ins_in.tiles_k * ins_in.bits_l);
   //into how many fetch sections do we need to separate workload to fetch all tiles_m
+  //every fetch section is sized to fit as many tiles into BRAM-buffers at once as possible
   uint16_t lhs_fetches = ins_in.tiles_m / lmem_num_regions;
   if(ins_in.tiles_m % lmem_num_regions != 0){
   	lhs_fetches++;
   }
-  //if tiles_m is not evenly divisible by number of fetch sections, last fetch section is smaller than previous ones
+  //if tiles_m is not evenly divisible by number of fetch sections, the last fetch section contains the remainder of tiles to be fetched
   const uint16_t last_iter_m = ins_in.tiles_m % lmem_num_regions;
   unsigned int total_iters = 0;
   // compute the size of the iteration space
@@ -106,13 +107,8 @@ void FetchInstrGen_RHSLHSTiling_Templated(
   }
   uint16_t n = 0, m = 0, lf = 0;
 
-  /*std::cout << "lhs_fetches " << lhs_fetches << std::endl;
-  std::cout << "lmem_num_regions " << lmem_num_regions << std::endl;
-  std::cout << "lmem_region_size " << lmem_region_size << std::endl;
-  std::cout << "ins_in.tiles_m " << ins_in.tiles_m << std::endl;
-  std::cout << "last_iter_m " << last_iter_m << std::endl;*/
-
   for(unsigned int i = 0; i < total_iters; i++) {
+  	//fetch next rhs tile at beginning of every fetch-section
     if(m == lmem_num_regions * lf) {
       // fill RHS buffer
       // each bit position is one block
@@ -156,6 +152,8 @@ void FetchInstrGen_RHSLHSTiling_Templated(
         rmem_region_offset = 0;
       }
     }
+    //only generate fetch instructions if the fetch section is at the very beginning and this is the first iteration over these lhs tiles
+    //otherwise just generate the necessary synchronisation instructions
     if(n == 0){
     // fill LHS buffer
     // each bit position is one block
@@ -211,16 +209,13 @@ void FetchInstrGen_RHSLHSTiling_Templated(
       lmem_region_offset = 0;
     }
     // iteration tracking logic: nested loops over tiles
-    //std::cout << "        m " << m << std::endl;
     m++;
     //m has reached end of fetch section or m has reached the end of the last fetch section
     if(m == lmem_num_regions * (lf+1) || ((m == last_iter_m + lmem_num_regions * lf) && (lf == (lhs_fetches - 1)))){
       m = lmem_num_regions * lf;
-      //std::cout << "    n " << n << std::endl;
       n++;
       if(n == ins_in.tiles_n) {
         n = 0;
-        //std::cout << "lf " << lf << std::endl;
         lf++;
         //if lf gets updated, m needs to be updated again
         m = lmem_num_regions * lf;
